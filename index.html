@@ -1,47 +1,33 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TITAN V2.4 LITE</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0a0f;color:#fff;font-family:Arial;padding:10px}.header{background:linear-gradient(90deg,#ff0040,#ff8000);padding:12px;border-radius:10px;text-align:center}.balance{background:#1a1a2e;padding:10px;border-radius:8px;display:flex;justify-content:space-between;margin:8px 0;border:1px solid #ff0040}.last-digit{background:#1a1a2e;border:2px solid #ff8000;padding:15px;border-radius:12px;text-align:center;margin-bottom:8px}.last-digit span{font-size:50px;color:#ff8000;font-weight:bold}.digits{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px}.digit-box{background:#1a1a2e;border:1px solid #333;padding:10px;border-radius:8px;text-align:center}.controls{background:#1a1a2e;padding:12px;border-radius:10px}.btn{width:100%;padding:12px;border:none;border-radius:6px;font-weight:bold;margin-top:6px}
-</style>
-</head>
-<body>
-<div class="header"><h2>🔥 TITAN V2.4 LITE 🔥</h2><div id="status" style="font-size:11px">● READY - Low Data Mode</div></div>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TITAN V2.6 WARP FINAL</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0a0f;color:#fff;font-family:Arial;padding:10px}.header{background:linear-gradient(90deg,#ff0040,#ff8000);padding:12px;border-radius:10px;text-align:center}.balance{background:#1a1a2e;padding:10px;border-radius:8px;display:flex;justify-content:space-between;margin:8px 0;border:1px solid #ff0040}.last-digit{background:#1a1a2e;border:2px solid #ff8000;padding:15px;border-radius:12px;text-align:center;margin-bottom:8px}.last-digit span{font-size:50px;color:#ff8000;font-weight:bold}.digits{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px}.digit-box{background:#1a1a2e;border:1px solid #333;padding:10px;border-radius:8px;text-align:center}.controls{background:#1a1a2e;padding:12px;border-radius:10px}.btn{width:100%;padding:12px;border:none;border-radius:6px;font-weight:bold;margin-top:6px}</style></head><body>
+<div class="header"><h2>🔥 TITAN V2.6 WARP FINAL 🔥</h2><div id="status">● READY - WARP MODE</div></div>
 <div class="balance"><div>Bal: <b id="bal">$0.00</b></div><div id="email" style="font-size:10px"></div></div>
-<div class="last-digit"><div style="font-size:11px;color:#888">LAST DIGIT</div><span id="last">-</span><div id="price" style="font-size:10px;color:#555"></div></div>
+<div class="last-digit"><div style="font-size:11px;color:#888">LAST DIGIT LIVE</div><span id="last">-</span><div id="price" style="font-size:10px"></div></div>
 <div class="digits" id="digits"></div>
 <div class="controls">
 <select id="market" style="width:100%;padding:10px;background:#000;color:#fff;border-radius:6px"><option value="R_100">Vol 100</option><option value="R_50">Vol 50</option><option value="R_25">Vol 25</option><option value="R_10">Vol 10</option></select>
-<input id="tokenInput" placeholder="Paste pat_ token" style="width:100%;padding:10px;margin-top:8px;background:#000;color:#0f0;border:1px solid #0f0;border-radius:6px;font-size:12px">
-<button style="width:100%;padding:12px;background:linear-gradient(90deg,#ff0040,#ff8000);color:#fff;border:none;border-radius:6px;font-weight:bold;margin-top:8px" onclick="login()">🔓 OAUTH LOGIN</button>
-<button style="width:100%;padding:12px;background:#00ff88;color:#000;border:none;border-radius:6px;font-weight:bold;margin-top:6px" onclick="manualLogin()">🔑 LOGIN TOKEN</button>
-<div id="log" style="margin-top:8px;font-size:10px;color:#0f0;background:#000;padding:6px;height:100px;overflow:auto"></div>
+<input id="tokenInput" placeholder="pat_ token" style="width:100%;padding:10px;margin-top:8px;background:#000;color:#0f0;border:1px solid #0f0;border-radius:6px">
+<button class="btn" style="background:linear-gradient(90deg,#ff0040,#ff8000);color:#fff" onclick="login()">🔓 OAUTH LOGIN</button>
+<button class="btn" style="background:#00ff88;color:#000" onclick="manualLogin()">🔑 LOGIN TOKEN</button>
+<div id="log" style="margin-top:8px;font-size:10px;color:#0f0;background:#000;padding:6px;height:120px;overflow:auto"></div>
 </div>
 <script>
-const OAUTH='34xnDtEmqLPic3a8oz5zu'; const RED='https://titan-digits.vercel.app/callback.html';
-const WS_URL='wss://ws.binaryws.com/websockets/v3?app_id=1089';
-let ws,counts=Array(10).fill(0),total=0,token=localStorage.getItem('deriv_token')||'';
+const OAUTH='34xnDtEmqLPic3a8oz5zu';const RED='https://titan-digits.vercel.app/callback.html';
+const URLS=['wss://gateway.deriv.com/websockets/v3?app_id=1089','wss://ws.derivws.com/websockets/v3?app_id=1089','wss://ws.binaryws.com/websockets/v3?app_id=1089','wss://ws.deriv.com/websockets/v3?app_id=1089'];
+let ws,counts=Array(10).fill(0),total=0,token=localStorage.getItem('deriv_token')||'',idx=0;
 document.getElementById('tokenInput').value=token;
-function log(m){document.getElementById('log').innerHTML='> '+new Date().toLocaleTimeString()+' '+m+'<br>'+document.getElementById('log').innerHTML;}
-function init(){let h='';for(let i=0;i<10;i++)h+=`<div class="digit-box" id="d${i}"><b>${i}</b><div id="p${i}" style="font-size:10px">0% (0)</div></div>`;document.getElementById('digits').innerHTML=h;}init();
+function log(m){let el=document.getElementById('log');el.innerHTML='> '+new Date().toLocaleTimeString()+' '+m+'<br>'+el.innerHTML;}
+function init(){let h='';for(let i=0;i<10;i++)h+=`<div class="digit-box"><b>${i}</b><div id="p${i}" style="font-size:10px">0% (0)</div></div>`;document.getElementById('digits').innerHTML=h;}init();
 function connect(){
-log('Connecting LOW DATA mode...');
-document.getElementById('status').innerText='● CONNECTING (Low Data)...';
-try{
-ws=new WebSocket(WS_URL);
-ws.onopen=()=>{document.getElementById('status').innerHTML='● <span style="color:#0f0">CONNECTED ✅</span>';log('WS OPENED ✅');ws.send(JSON.stringify({ticks:document.getElementById('market').value}));if(token){ws.send(JSON.stringify({authorize:token}));log('Auth...');}};
-ws.onmessage=(e)=>{let d=JSON.parse(e.data);if(d.error){log('ERR:'+d.error.message);}if(d.msg_type=='tick'){let pr=d.tick.quote.toString();let last=parseInt(pr.slice(-1));document.getElementById('last').innerText=last;document.getElementById('price').innerText=pr;counts[last]++;total++;for(let i=0;i<10;i++){let pct=total?((counts[i]/total)*100).toFixed(0):0;document.getElementById('p'+i).innerText=pct+'% ('+counts[i]+')';}}if(d.msg_type=='authorize'){document.getElementById('bal').innerText='$'+d.authorize.balance.toFixed(2);document.getElementById('email').innerText=d.authorize.email;log('BAL $'+d.authorize.balance+' ✅');}};
-ws.onerror=()=>{log('WS Error, retry 3s...');};
-ws.onclose=()=>{log('Closed, retry 3s...');setTimeout(connect,3000);};
-}catch(err){log('Fail '+err);setTimeout(connect,3000);}
-}
-connect();
+let url=URLS[idx];log('Trying Server '+(idx+1)+'/4: '+url.split('/')[2]);document.getElementById('status').innerHTML='● CONNECTING Server '+(idx+1)+'/4...';
+try{ws=new WebSocket(url);
+ws.onopen=()=>{document.getElementById('status').innerHTML='● <span style="color:#0f0">CONNECTED ✅ Server '+(idx+1)+'</span>';log('WS OPENED ✅ Server '+(idx+1));ws.send(JSON.stringify({ticks:document.getElementById('market').value}));if(token){ws.send(JSON.stringify({authorize:token}));log('Authorizing...');}};
+ws.onmessage=(e)=>{let d=JSON.parse(e.data);if(d.error)log('ERR: '+d.error.message);if(d.msg_type=='tick'){let pr=d.tick.quote.toString();let last=parseInt(pr.slice(-1));document.getElementById('last').innerText=last;document.getElementById('price').innerText=pr;counts[last]++;total++;for(let i=0;i<10;i++){let pct=total?((counts[i]/total)*100).toFixed(0):0;let el=document.getElementById('p'+i);if(el)el.innerText=pct+'% ('+counts[i]+')';}}if(d.msg_type=='authorize'){document.getElementById('bal').innerText='$'+d.authorize.balance.toFixed(2);document.getElementById('email').innerText=d.authorize.email;log('AUTH OK $'+d.authorize.balance+' ✅');}};
+ws.onerror=()=>{log('WS Error Server '+(idx+1));ws.close();};
+ws.onclose=()=>{log('Closed Server '+(idx+1)+' -> Next');idx=(idx+1)%URLS.length;setTimeout(connect,800);};
+}catch(e){log('Fail '+e);idx=(idx+1)%URLS.length;setTimeout(connect,800);}}
 function login(){location.href='https://oauth.deriv.com/oauth2/authorize?app_id='+OAUTH+'&l=en&redirect_uri='+RED;}
-function manualLogin(){let t=document.getElementById('tokenInput').value.trim();if(!t)return alert('Paste token');localStorage.setItem('deriv_token',t);token=t;log('Saved '+t.slice(0,8)+'...');if(ws&&ws.readyState==1)ws.send(JSON.stringify({authorize:token}));else connect();}
-document.getElementById('market').onchange=()=>{counts=Array(10).fill(0);total=0;init();if(ws)ws.send(JSON.stringify({forget_all:'ticks'}));setTimeout(()=>ws.send(JSON.stringify({ticks:document.getElementById('market').value})),500);};
+function manualLogin(){let t=document.getElementById('tokenInput').value.trim();if(!t)return alert('Paste token');localStorage.setItem('deriv_token',t);token=t;log('Token saved '+t.slice(0,8));if(ws&&ws.readyState==1)ws.send(JSON.stringify({authorize:t}));}
+connect();
+document.getElementById('market').onchange=()=>{counts=Array(10).fill(0);total=0;init();if(ws)ws.send(JSON.stringify({forget_all:'ticks'}));setTimeout(()=>{if(ws)ws.send(JSON.stringify({ticks:document.getElementById('market').value}));},500);};
 </script>
-</body>
-</html>
+</body></html>
