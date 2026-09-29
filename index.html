@@ -1,1 +1,136 @@
-<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>TITAN DIGITS - LIVE</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0a0a;color:#fff;font-family:system-ui;padding:10px}.top{display:flex;gap:8px}.bal{flex:1;background:linear-gradient(90deg,#FFD700,#FFA500);color:#000;border-radius:12px;padding:12px;font-weight:900}.sign{background:#00ff66;color:#000;border:0;border-radius:12px;padding:12px 18px;font-weight:900}.auto{margin-top:10px;background:#00ff66;color:#000;padding:14px;border-radius:20px;text-align:center;font-weight:900;width:100%;border:0}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}.digit{background:#111;border:2px solid #333;border-radius:14px;padding:10px;text-align:center}.digit.hot{background:#00ff66;color:#000;border-color:#00ff66}</style></head><body><div class="top"><div class="bal" id="bal">Bal: $0.00 | TITAN READY</div><button class="sign" onclick="login()">SIGN UP</button></div><button class="auto" id="ab" onclick="toggleAuto()">⏸️ AUTO OFF</button><div style="margin-top:10px;background:#111;border:1px solid #333;border-radius:12px;padding:10px;font-size:12px" id="info">WS: OFF - Tap SIGN UP to LOGIN</div><div class="grid" id="grid"></div><div style="margin-top:10px;background:#111;border-radius:12px;padding:10px;font-family:monospace;font-size:12px" id="log">🚀 TITAN DIGITS V1 Ready...</div><script>const APP_ID="34qyJGBERhw2zjIw8hKtD";const REDIRECT="https://titan-digits.vercel.app/callback.html";let token=localStorage.getItem("deriv_token")||"",ws,balance=0,last100=[],digits={};function login(){location.href=`https://oauth.deriv.com/oauth2/authorize?app_id=${APP_ID}&brand=deriv&redirect_uri=${REDIRECT}`;}function toggleAuto(){let b=document.getElementById("ab");b.innerText=b.innerText.includes("OFF")?"▶️ AUTO ON | TITAN ACTIVE":"⏸️ AUTO OFF";}function render(){let g=document.getElementById("grid");g.innerHTML="";for(let i=0;i<10;i++){let c=digits[i]||{count:0},pct=last100.length?Math.round(c.count/last100.length*100):0;let hot=Object.values(digits).sort((a,b)=>b.count-a.count)[0];let isHot=hot&&c.count==hot.count&&c.count>0;g.innerHTML+=`<div class="digit ${isHot?"hot":""}"><b style="font-size:22px">${i}</b><br>${pct}%<br>${c.count}M</div>`;}}function connect(){if(!token){render();return;}ws=new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);ws.onopen=()=>ws.send(JSON.stringify({authorize:token}));ws.onmessage=e=>{let d=JSON.parse(e.data);if(d.authorize){balance=d.authorize.balance;document.getElementById("bal").innerText=`Bal: $${parseFloat(balance).toFixed(2)} | TITAN LIVE ✅`;ws.send(JSON.stringify({ticks:"R_100",subscribe:1}));}if(d.tick){let last=d.tick.quote.toFixed(2).slice(-1);last100.unshift(parseInt(last));if(last100.length>100)last100.pop();if(!digits[last])digits[last]={count:0};digits[last].count++;document.getElementById("info").innerHTML=`R_100: ${d.tick.quote} | Last:${last} | WS: <b style="color:#00ff66">LIVE ✅</b>`;render();}};ws.onclose=()=>setTimeout(connect,2000);}if(token)document.querySelector(".sign").innerText="✅ LOGGED IN";connect();render();</script></body></html>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TITAN DIGITS V2 - LIVE</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#fff;font-family:Arial,sans-serif;padding:10px}
+.header{background:linear-gradient(90deg,#ff0040,#ff8000);padding:15px;border-radius:12px;text-align:center;margin-bottom:10px}
+.header h1{font-size:22px;letter-spacing:2px}
+.balance{background:#1a1a2e;padding:12px;border-radius:10px;display:flex;justify-content:space-between;margin-bottom:10px;border:1px solid #ff0040}
+.digits{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px}
+.digit-box{background:#1a1a2e;border:1px solid #333;padding:12px;border-radius:10px;text-align:center;transition:0.3s}
+.digit-box.hot{background:#00ff88;color:#000;border-color:#00ff88;transform:scale(1.1);box-shadow:0 0 15px #00ff88}
+.digit-box.cold{background:#ff0040;color:#fff}
+.digit-num{font-size:24px;font-weight:bold}
+.digit-pct{font-size:12px;margin-top:4px}
+.last-digit{background:#1a1a2e;border:2px solid #ff8000;padding:20px;border-radius:15px;text-align:center;margin-bottom:10px}
+.last-digit span{font-size:60px;font-weight:bold;color:#ff8000}
+.controls{background:#1a1a2e;padding:15px;border-radius:12px;border:1px solid #333}
+.btn{width:100%;padding:14px;border:none;border-radius:8px;font-weight:bold;font-size:16px;margin-top:8px;cursor:pointer}
+.btn-login{background:linear-gradient(90deg,#ff0040,#ff8000);color:#fff}
+.btn-trade{background:#00ff88;color:#000}
+.status{text-align:center;padding:8px;font-size:12px;color:#888}
+.live{color:#00ff88;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>🔥 TITAN DIGITS V2 🔥</h1>
+<div class="status"><span class="live">● LIVE</span> <span id="status">TITAN READY</span></div>
+</div>
+
+<div class="balance">
+<div>Bal: <b id="bal">$0.00</b></div>
+<div>Profit: <b id="profit" style="color:#00ff88">$0.00</b></div>
+</div>
+
+<div class="last-digit">
+<div style="font-size:14px;color:#888">LAST DIGIT</div>
+<span id="last">-</span>
+<div id="lastTime" style="font-size:10px;color:#555"></div>
+</div>
+
+<div class="digits" id="digits"></div>
+
+<div class="controls">
+<select id="market" style="width:100%;padding:10px;border-radius:6px;background:#0a0a0f;color:#fff;border:1px solid #333">
+<option value="R_100">Volatility 100 Index</option>
+<option value="R_50">Volatility 50 Index</option>
+<option value="R_25">Volatility 25 Index</option>
+<option value="1HZ100V">Vol 100 (1s)</option>
+</select>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+<button class="btn" style="background:#1a1a2e;border:1px solid #00ff88;color:#00ff88" onclick="setMode('over')">OVER</button>
+<button class="btn" style="background:#1a1a2e;border:1px solid #ff0040;color:#ff0040" onclick="setMode('under')">UNDER</button>
+</div>
+
+<div style="display:flex;gap:8px;margin-top:10px">
+<input id="stake" type="number" value="1" style="flex:1;padding:10px;border-radius:6px;background:#0a0a0f;color:#fff;border:1px solid #333" placeholder="Stake">
+<input id="target" type="number" value="3" min="0" max="9" style="flex:1;padding:10px;border-radius:6px;background:#0a0a0f;color:#fff;border:1px solid #333" placeholder="Digit">
+</div>
+
+<button id="loginBtn" class="btn btn-login" onclick="login()">🔐 CONNECT DERIV ACCOUNT</button>
+<button id="tradeBtn" class="btn btn-trade" style="display:none" onclick="toggleTrade()">▶ START TITAN AUTO</button>
+<div id="log" style="margin-top:10px;font-size:11px;color:#666;height:60px;overflow:auto;background:#0a0a0f;padding:8px;border-radius:6px"></div>
+</div>
+
+<script>
+const APP_ID = '34xnDtEmqLPic3a8oz5zu';
+const REDIRECT = 'https://titan-digits.vercel.app/callback.html';
+let ws, counts=Array(10).fill(0), total=0, mode='over', trading=false, token=localStorage.getItem('deriv_token');
+
+function log(m){document.getElementById('log').innerHTML='<div>> '+new Date().toLocaleTimeString()+' - '+m+'</div>'+document.getElementById('log').innerHTML}
+
+function initDigits(){
+let h='';
+for(let i=0;i<10;i++) h+=`<div class="digit-box" id="d${i}"><div class="digit-num">${i}</div><div class="digit-pct" id="p${i}">0% (0)</div></div>`;
+document.getElementById('digits').innerHTML=h;
+}
+initDigits();
+
+function updateStats(last){
+counts[last]++; total++;
+for(let i=0;i<10;i++){
+let pct=total?((counts[i]/total)*100).toFixed(1):0;
+document.getElementById('p'+i).innerText=pct+'% ('+counts[i]+')';
+document.getElementById('d'+i).className='digit-box'+(pct<5?' cold':'')+(counts[i]==Math.max(...counts)?' hot':'');
+}
+}
+
+function connect(){
+ws=new WebSocket('wss://ws.derivws.com/websockets/v3?app_id='+APP_ID);
+ws.onopen=()=>{
+document.getElementById('status').innerText='CONNECTED';
+log('Connected to Deriv');
+let market=document.getElementById('market').value;
+ws.send(JSON.stringify({ticks:market}));
+if(token) ws.send(JSON.stringify({authorize:token}));
+};
+ws.onmessage=(e)=>{
+let d=JSON.parse(e.data);
+if(d.msg_type=='tick'){
+let price=d.tick.quote.toString();
+let last=parseInt(price.slice(-1));
+document.getElementById('last').innerText=last;
+document.getElementById('lastTime').innerText=price;
+updateStats(last);
+}
+if(d.msg_type=='authorize'){
+document.getElementById('bal').innerText='$'+d.authorize.balance;
+document.getElementById('loginBtn').style.display='none';
+document.getElementById('tradeBtn').style.display='block';
+document.getElementById('status').innerText='ACCOUNT CONNECTED - '+d.authorize.email;
+log('Account: '+d.authorize.email);
+}
+};
+ws.onclose=()=>{setTimeout(connect,2000)};
+}
+connect();
+
+function login(){
+let url='https://oauth.deriv.com/oauth2/authorize?app_id='+APP_ID+'&l=en&redirect_uri='+REDIRECT;
+window.location.href=url;
+}
+function setMode(m){mode=m; log('Mode: '+m.toUpperCase());}
+function toggleTrade(){trading=!trading; document.getElementById('tradeBtn').innerText=trading?'⏸ STOP TITAN':'▶ START TITAN AUTO'; log(trading?'TITAN STARTED':'TITAN STOPPED')}
+document.getElementById('market').onchange=()=>{if(ws){ws.send(JSON.stringify({forget_all:'ticks'})); ws.send(JSON.stringify({ticks:document.getElementById('market').value}))}};
+if(token) log('Token found, auto-connecting...');
+</script>
+</body>
+</html>
