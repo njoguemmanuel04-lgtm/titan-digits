@@ -1,1 +1,18 @@
-<!DOCTYPE html><html><body style="background:#000;color:#0f0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:monospace"><h2>✅ TITAN LOGIN SUCCESS...</h2><script>const p=new URLSearchParams(location.search);let t="";for(let v of p.values()){if(v.includes("-")){t=v;break;}}if(!t)for(let k of p.keys()){if(k.startsWith("acct")){t=p.get(k);break;}}if(t){localStorage.setItem("deriv_token",t);setTimeout(()=>location.href="/",500);}else location.href="/";</script></body></html>
+<!DOCTYPE html>
+<html><body style="background:#0a0a0f;color:#fff;text-align:center;padding:50px;font-family:Arial">
+<h2>Connecting...</h2>
+<script>
+const params=new URLSearchParams(window.location.search);
+const urlParams=new URLSearchParams(window.location.hash.substring(1));
+let token=params.get('token1')||params.get('token')||urlParams.get('token1')||urlParams.get('token')||params.get('acct1');
+if(token){
+localStorage.setItem('deriv_token',token);
+document.body.innerHTML='<h2 style="color:#00ff88">✅ CONNECTED! Redirecting...</h2>';
+}else{
+let all=window.location.href;
+let m=all.match(/token1=([^&]+)/);
+if(m){localStorage.setItem('deriv_token',m[1]);}
+}
+setTimeout(()=>{window.location.href='https://titan-digits.vercel.app/'},1500);
+</script>
+</body></html>
