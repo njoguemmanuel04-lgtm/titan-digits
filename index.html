@@ -3,142 +3,45 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TITAN V2.2 FINAL</title>
+<title>TITAN V2.4 LITE</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a0f;color:#fff;font-family:Arial;padding:10px}
-.header{background:linear-gradient(90deg,#ff0040,#ff8000);padding:15px;border-radius:12px;text-align:center;margin-bottom:10px}
-.balance{background:#1a1a2e;padding:12px;border-radius:10px;display:flex;justify-content:space-between;margin-bottom:10px;border:1px solid #ff0040}
-.last-digit{background:#1a1a2e;border:2px solid #ff8000;padding:20px;border-radius:15px;text-align:center;margin-bottom:10px}
-.last-digit span{font-size:60px;color:#ff8000;font-weight:bold}
-.digits{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px}
-.digit-box{background:#1a1a2e;border:1px solid #333;padding:12px;border-radius:10px;text-align:center}
-.digit-box.hot{background:#00ff88;color:#000;transform:scale(1.1);border-color:#00ff88}
-.controls{background:#1a1a2e;padding:15px;border-radius:12px}
-.btn{width:100%;padding:14px;border:none;border-radius:8px;font-weight:bold;margin-top:8px;cursor:pointer}
-.btn-login{background:linear-gradient(90deg,#ff0040,#ff8000);color:#fff}
+*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0a0f;color:#fff;font-family:Arial;padding:10px}.header{background:linear-gradient(90deg,#ff0040,#ff8000);padding:12px;border-radius:10px;text-align:center}.balance{background:#1a1a2e;padding:10px;border-radius:8px;display:flex;justify-content:space-between;margin:8px 0;border:1px solid #ff0040}.last-digit{background:#1a1a2e;border:2px solid #ff8000;padding:15px;border-radius:12px;text-align:center;margin-bottom:8px}.last-digit span{font-size:50px;color:#ff8000;font-weight:bold}.digits{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px}.digit-box{background:#1a1a2e;border:1px solid #333;padding:10px;border-radius:8px;text-align:center}.controls{background:#1a1a2e;padding:12px;border-radius:10px}.btn{width:100%;padding:12px;border:none;border-radius:6px;font-weight:bold;margin-top:6px}
 </style>
 </head>
 <body>
-<div class="header">
-<h1>🔥 TITAN DIGITS V2.2 🔥</h1>
-<div id="status" style="font-size:12px;margin-top:5px">● READY - Connecting...</div>
-</div>
-<div class="balance">
-<div>Bal: <b id="bal">$0.00</b></div>
-<div><span id="email" style="font-size:10px;color:#888"></span> <b id="profit" style="color:#00ff88">$0.00</b></div>
-</div>
-<div class="last-digit">
-<div style="font-size:12px;color:#888">LAST DIGIT - LIVE</div>
-<span id="last">-</span>
-<div id="price" style="font-size:11px;color:#555;margin-top:5px"></div>
-</div>
+<div class="header"><h2>🔥 TITAN V2.4 LITE 🔥</h2><div id="status" style="font-size:11px">● READY - Low Data Mode</div></div>
+<div class="balance"><div>Bal: <b id="bal">$0.00</b></div><div id="email" style="font-size:10px"></div></div>
+<div class="last-digit"><div style="font-size:11px;color:#888">LAST DIGIT</div><span id="last">-</span><div id="price" style="font-size:10px;color:#555"></div></div>
 <div class="digits" id="digits"></div>
 <div class="controls">
-<select id="market" style="width:100%;padding:12px;border-radius:6px;background:#000;color:#fff;border:1px solid #333;margin-bottom:10px">
-<option value="R_100">Volatility 100 Index</option>
-<option value="R_50">Volatility 50 Index</option>
-<option value="R_25">Volatility 25 Index</option>
-<option value="1HZ100V">Volatility 100 (1s)</option>
-<option value="1HZ50V">Volatility 50 (1s)</option>
-</select>
-<input id="tokenInput" placeholder="Paste your PAT token here (pat_...)" style="width:100%;padding:12px;border-radius:6px;background:#000;color:#00ff88;border:1px solid #00ff88;font-size:12px">
-<button class="btn btn-login" onclick="login()">🔓 CONNECT DERIV OAUTH</button>
-<button class="btn" style="background:#00ff88;color:#000" onclick="manualLogin()">🔑 LOGIN WITH TOKEN</button>
-<div style="font-size:10px;color:#888;margin-top:10px;text-align:center">Get token: app.deriv.com → Account Settings → API Token → Create<br>Tick box: Read, Trade, Trading Info, Payments</div>
-<div id="log" style="margin-top:10px;font-size:11px;color:#00ff88;background:#000;padding:8px;border-radius:6px;height:90px;overflow:auto;border:1px solid #222"></div>
+<select id="market" style="width:100%;padding:10px;background:#000;color:#fff;border-radius:6px"><option value="R_100">Vol 100</option><option value="R_50">Vol 50</option><option value="R_25">Vol 25</option><option value="R_10">Vol 10</option></select>
+<input id="tokenInput" placeholder="Paste pat_ token" style="width:100%;padding:10px;margin-top:8px;background:#000;color:#0f0;border:1px solid #0f0;border-radius:6px;font-size:12px">
+<button style="width:100%;padding:12px;background:linear-gradient(90deg,#ff0040,#ff8000);color:#fff;border:none;border-radius:6px;font-weight:bold;margin-top:8px" onclick="login()">🔓 OAUTH LOGIN</button>
+<button style="width:100%;padding:12px;background:#00ff88;color:#000;border:none;border-radius:6px;font-weight:bold;margin-top:6px" onclick="manualLogin()">🔑 LOGIN TOKEN</button>
+<div id="log" style="margin-top:8px;font-size:10px;color:#0f0;background:#000;padding:6px;height:100px;overflow:auto"></div>
 </div>
 <script>
-// FIXED: WS uses public app_id 1089, OAuth uses your app_id
-const WS_APP_ID=1089;
-const OAUTH_APP_ID='34xnDtEmqLPic3a8oz5zu';
-const REDIRECT='https://titan-digits.vercel.app/callback.html';
-let ws, counts=Array(10).fill(0), total=0;
-let token=localStorage.getItem('deriv_token')||'';
+const OAUTH='34xnDtEmqLPic3a8oz5zu'; const RED='https://titan-digits.vercel.app/callback.html';
+const WS_URL='wss://ws.binaryws.com/websockets/v3?app_id=1089';
+let ws,counts=Array(10).fill(0),total=0,token=localStorage.getItem('deriv_token')||'';
 document.getElementById('tokenInput').value=token;
-
-function log(m){
-let l=document.getElementById('log');
-l.innerHTML='> '+new Date().toLocaleTimeString()+' - '+m+'<br>'+l.innerHTML;
-}
-function initDigits(){
-let h='';
-for(let i=0;i<10;i++)h+=`<div class="digit-box" id="d${i}"><div style="font-size:22px;font-weight:bold">${i}</div><div id="p${i}" style="font-size:11px;color:#888">0% (0)</div></div>`;
-document.getElementById('digits').innerHTML=h;
-}
-initDigits();
-
+function log(m){document.getElementById('log').innerHTML='> '+new Date().toLocaleTimeString()+' '+m+'<br>'+document.getElementById('log').innerHTML;}
+function init(){let h='';for(let i=0;i<10;i++)h+=`<div class="digit-box" id="d${i}"><b>${i}</b><div id="p${i}" style="font-size:10px">0% (0)</div></div>`;document.getElementById('digits').innerHTML=h;}init();
 function connect(){
-log('Connecting WS app_id='+WS_APP_ID+'...');
-ws=new WebSocket('wss://ws.derivws.com/websockets/v3?app_id='+WS_APP_ID);
-ws.onopen=()=>{
-document.getElementById('status').innerHTML='● <span style="color:#00ff88">CONNECTED - LIVE FEED</span>';
-log('WS OPENED ✅');
-let m=document.getElementById('market').value;
-ws.send(JSON.stringify({ticks:m}));
-log('Subscribed to '+m+' ✅');
-if(token){
-log('Found saved token, authorizing...');
-ws.send(JSON.stringify({authorize:token}));
-}
-};
-ws.onmessage=(e)=>{
-let d=JSON.parse(e.data);
-if(d.error){log('ERROR: '+d.error.message+' ❌');}
-if(d.msg_type=='tick'){
-let price=d.tick.quote.toString();
-let last=parseInt(price.slice(-1));
-document.getElementById('last').innerText=last;
-document.getElementById('price').innerText=price+' | '+d.tick.symbol;
-counts[last]++;total++;
-for(let i=0;i<10;i++){
-let pct=total?((counts[i]/total)*100).toFixed(1):0;
-document.getElementById('p'+i).innerText=pct+'% ('+counts[i]+')';
-let box=document.getElementById('d'+i);
-if(counts[i]==Math.max(...counts)&&total>5)box.className='digit-box hot';
-else box.className='digit-box';
-}
-}
-if(d.msg_type=='authorize'){
-document.getElementById('bal').innerText='$'+d.authorize.balance.toFixed(2);
-document.getElementById('email').innerText=d.authorize.email;
-document.getElementById('status').innerHTML='● <span style="color:#00ff88">CONNECTED: '+d.authorize.email+'</span>';
-log('AUTH OK! Balance: $'+d.authorize.balance+' ✅');
-}
-};
-ws.onerror=()=>{log('WS ERROR - Check internet ❌');};
-ws.onclose=()=>{
-log('WS CLOSED - Reconnecting 3s...');
-document.getElementById('status').innerHTML='● RECONNECTING...';
-setTimeout(connect,3000);
-};
+log('Connecting LOW DATA mode...');
+document.getElementById('status').innerText='● CONNECTING (Low Data)...';
+try{
+ws=new WebSocket(WS_URL);
+ws.onopen=()=>{document.getElementById('status').innerHTML='● <span style="color:#0f0">CONNECTED ✅</span>';log('WS OPENED ✅');ws.send(JSON.stringify({ticks:document.getElementById('market').value}));if(token){ws.send(JSON.stringify({authorize:token}));log('Auth...');}};
+ws.onmessage=(e)=>{let d=JSON.parse(e.data);if(d.error){log('ERR:'+d.error.message);}if(d.msg_type=='tick'){let pr=d.tick.quote.toString();let last=parseInt(pr.slice(-1));document.getElementById('last').innerText=last;document.getElementById('price').innerText=pr;counts[last]++;total++;for(let i=0;i<10;i++){let pct=total?((counts[i]/total)*100).toFixed(0):0;document.getElementById('p'+i).innerText=pct+'% ('+counts[i]+')';}}if(d.msg_type=='authorize'){document.getElementById('bal').innerText='$'+d.authorize.balance.toFixed(2);document.getElementById('email').innerText=d.authorize.email;log('BAL $'+d.authorize.balance+' ✅');}};
+ws.onerror=()=>{log('WS Error, retry 3s...');};
+ws.onclose=()=>{log('Closed, retry 3s...');setTimeout(connect,3000);};
+}catch(err){log('Fail '+err);setTimeout(connect,3000);}
 }
 connect();
-
-function login(){
-window.location.href='https://oauth.deriv.com/oauth2/authorize?app_id='+OAUTH_APP_ID+'&l=en&redirect_uri='+REDIRECT;
-}
-function manualLogin(){
-let t=document.getElementById('tokenInput').value.trim();
-if(!t){alert('Paste token first! Example pat_...');return;}
-localStorage.setItem('deriv_token',t);
-token=t;
-log('Token saved: '+t.slice(0,12)+'... ✅');
-if(ws&&ws.readyState===1){
-ws.send(JSON.stringify({authorize:token}));
-log('Authorizing now...');
-}else{
-log('WS not ready, reconnecting...');
-connect();
-setTimeout(()=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify({authorize:token}));},1500);
-}
-}
-document.getElementById('market').onchange=()=>{
-counts=Array(10).fill(0);total=0;initDigits();
-if(ws){ws.send(JSON.stringify({forget_all:'ticks'}));}
-setTimeout(()=>{if(ws)ws.send(JSON.stringify({ticks:document.getElementById('market').value}));log('Switched to '+document.getElementById('market').value);},500);
-};
-if(token)log('Saved token found, will auto-login');
+function login(){location.href='https://oauth.deriv.com/oauth2/authorize?app_id='+OAUTH+'&l=en&redirect_uri='+RED;}
+function manualLogin(){let t=document.getElementById('tokenInput').value.trim();if(!t)return alert('Paste token');localStorage.setItem('deriv_token',t);token=t;log('Saved '+t.slice(0,8)+'...');if(ws&&ws.readyState==1)ws.send(JSON.stringify({authorize:token}));else connect();}
+document.getElementById('market').onchange=()=>{counts=Array(10).fill(0);total=0;init();if(ws)ws.send(JSON.stringify({forget_all:'ticks'}));setTimeout(()=>ws.send(JSON.stringify({ticks:document.getElementById('market').value})),500);};
 </script>
 </body>
 </html>
