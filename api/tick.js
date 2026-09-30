@@ -1,17 +1,24 @@
+export const config = { runtime: 'nodejs' };
 import WebSocket from 'ws';
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin','*');
+  res.setHeader('Cache-Control','no-store');
   try {
-    const ws = new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=1089');
+    const ws = new WebSocket('wss://api.derivws.com/trading/v1/options/ws/public');
     const tick = await new Promise((resolve, reject) => {
-      const t = setTimeout(()=>reject('timeout'),4000);
-      ws.on('open',()=>{ ws.send(JSON.stringify({ticks:"R_100"})); });
+      const t = setTimeout(()=>{ try{ws.close()}catch{}; reject(new Error('timeout')); }, 8000);
+      ws.on('open',()=>{ ws.send(JSON.stringify({ ticks: "R_100" })); });
       ws.on('message',(d)=>{
-        const m=JSON.parse(d.toString());
-        if(m.tick){ clearTimeout(t); resolve(m.tick); ws.close(); }
+        try{
+          const m=JSON.parse(d.toString());
+          if(m.tick){ clearTimeout(t); resolve(m.tick); ws.close(); }
+        }catch{}
       });
-      ws.on('error',reject);
+      ws.on('error',(e)=>{ clearTimeout(t); reject(e); });
     });
-    res.status(200).json({quote:tick.quote, epoch:tick.epoch});
-  } catch(e){ res.status(500).json({error:e.toString()}); }
+    res.status(200).json({ quote: tick.quote, epoch: tick.epoch, symbol: tick.symbol });
+  } catch(e) {
+    res.status(500).json({ error: e.message || e.toString() });
+  }
 }
