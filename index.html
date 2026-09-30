@@ -1,18 +1,55 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TITAN V2.9 PROXY</title><style>body{background:#0a0a0f;color:#fff;font-family:Arial;padding:10px}.h{background:linear-gradient(90deg,#00ff88,#00ccff);padding:12px;border-radius:10px;text-align:center}.l{font-size:55px;color:#00ff88;font-weight:bold}.b{width:100%;padding:12px;border:none;border-radius:6px;font-weight:bold;margin-top:6px}.lg{font-size:10px;color:#0f0;background:#000;padding:6px;height:150px;overflow:auto}</style></head><body>
-<div class="h"><h2>TITAN V2.9 PROXY FIX</h2><div id="s">READY</div></div>
-<div style="background:#1a1a2e;padding:10px;margin:8px 0;border-radius:8px">Bal: <b id="bal">$0.00</b></div>
-<div style="background:#1a1a2e;border:2px solid #00ff88;padding:15px;border-radius:12px;text-align:center">LAST: <span id="last" class="l">-</span><div id="pr" style="color:#888"></div><div id="md" style="font-size:10px;color:#0f0"></div></div>
-<div id="dg" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0"></div>
-<select id="mk" style="width:100%;padding:10px;background:#000;color:#fff"><option value="R_100">Vol 100</option><option value="R_50">Vol 50</option><option value="R_25">Vol 25</option></select>
-<input id="tk" style="width:100%;padding:10px;margin-top:8px;background:#000;color:#0f0;border:1px solid #0f0" placeholder="pat_ token">
-<button class="b" style="background:#00ff88;color:#000" onclick="localStorage.setItem('deriv_token',document.getElementById('tk').value);location.reload()">SAVE TOKEN</button>
-<div id="lg" class="lg"></div>
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TITAN DIGITS</title>
+<style>body{background:#0a0a0a;color:#0f0;font-family:monospace;padding:10px}input,button{width:100%;padding:12px;margin:6px 0;background:#111;color:#0f0;border:1px solid #0f0;border-radius:6px}button{background:#0f0;color:#000;font-weight:bold}#log{height:200px;overflow:auto;border:1px solid #333;padding:8px;white-space:pre-wrap;font-size:12px}#last{font-size:48px;text-align:center;margin:10px 0}#digits{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.d{border:1px solid #333;padding:8px;text-align:center}</style>
+</head><body>
+<h2>⚡ TITAN DIGITS — DIRECT WS</h2>
+<input id="token" placeholder="Deriv API Token (pat_...)" type="password">
+<button onclick="saveToken()">SAVE TOKEN & START</button>
+<div id="last">-</div>
+<div id="digits"></div>
+<div id="log">> Ready...</div>
 <script>
-let c=Array(10).fill(0),t=0,tk=localStorage.getItem('deriv_token')||'',lp='';
-document.getElementById('tk').value=tk;
-let d='';for(let k=0;k<10;k++)d+=`<div style="background:#1a1a2e;padding:10px;border-radius:8px;text-align:center"><b>${k}</b><div id="p${k}">0%</div></div>`;document.getElementById('dg').innerHTML=d;
-function L(m){document.getElementById('lg').innerHTML='> '+m+'<br>'+document.getElementById('lg').innerHTML}
-function U(last,price){if(price==lp) return; lp=price; document.getElementById('last').innerText=last; document.getElementById('pr').innerText=price; c[last]++; t++; for(let k=0;k<10;k++){let p=t?((c[k]/t)*100).toFixed(0):0; document.getElementById('p'+k).innerText=p+'% ('+c[k]+')';}}
-async function H(){try{let r=await fetch('/api/tick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticks:document.getElementById('mk').value})}); let j=await r.json(); if(j.tick){let p=j.tick.quote+''; U(parseInt(p.slice(-1)),p); document.getElementById('md').innerText='PROXY HTTP ✅ LIVE'; document.getElementById('s').innerHTML='● PROXY MODE ✅ ACTIVE'; L('TICK '+p+' LAST='+p.slice(-1));} if(tk){let ra=await fetch('/api/tick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({authorize:tk})}); let ja=await ra.json(); if(ja.authorize){document.getElementById('bal').innerText='$'+ja.authorize.balance.toFixed(2); L('BAL OK $'+ja.authorize.balance);}}}catch(e){L('ERR '+e.message)}}
-L('Starting PROXY mode...'); document.getElementById('s').innerHTML='● PROXY MODE ✅ ACTIVE'; setInterval(H,1000); H();
-</script></body></html>
+let ws, token=localStorage.getItem('deriv_token')||'', ticks=[], lastDigit='-';
+const logEl=document.getElementById('log'), lastEl=document.getElementById('last'), digitsEl=document.getElementById('digits');
+function log(m){ logEl.textContent += '\n'+m; logEl.scrollTop=logEl.scrollHeight; console.log(m); }
+function saveToken(){ token=document.getElementById('token').value.trim(); if(!token){log('> Enter token!');return;} localStorage.setItem('deriv_token',token); log('> TOKEN SAVED'); connect(); }
+if(token){ document.getElementById('token').value=token; }
+
+const ENDPOINTS=[
+  'wss://ws.binaryws.com/websockets/v3?app_id=1089',
+  'wss://ws.derivws.com/websockets/v3?app_id=1089',
+  'wss://ws.deriv.com/websockets/v3?app_id=1089'
+];
+let ep=0;
+function connect(){
+  const url=ENDPOINTS[ep%ENDPOINTS.length];
+  log('> TRY '+url);
+  try{
+    if(ws) try{ws.close()}catch{}
+    ws=new WebSocket(url);
+    ws.onopen=()=>{ log('> CONNECTED '+url); ep=0; if(token) ws.send(JSON.stringify({authorize:token})); else ws.send(JSON.stringify({ticks:'R_100'})); };
+    ws.onmessage=(e)=>{
+      try{
+        const data=JSON.parse(e.data);
+        if(data.error){ log('> ERR '+data.error.message); return; }
+        if(data.authorize){ log('> AUTHORIZED '+data.authorize.logininfo.email); ws.send(JSON.stringify({ticks:'R_100'})); return; }
+        if(data.tick){
+          const q=data.tick.quote.toString(); const d=parseInt(q.slice(-1)); lastDigit=d;
+          lastEl.textContent=d; lastEl.style.color=d%2==0?'#0f0':'#ff0';
+          ticks.push(d); if(ticks.length>100) ticks.shift();
+          log('> TICK '+q+' LAST:'+d); updateDigits();
+        }
+      }catch(err){ log('> Parse err '+err); }
+    };
+    ws.onerror=()=>{ log('> ERR '+url+' -> next'); ep++; setTimeout(connect,1000); };
+    ws.onclose=()=>{ log('> CLOSED -> retry'); ep++; setTimeout(connect,1500); };
+  }catch(e){ log('> EX '+e.message); ep++; setTimeout(connect,1000); }
+}
+function updateDigits(){
+  const cnt=Array(10).fill(0); ticks.forEach(x=>cnt[x]++);
+  const total=ticks.length||1;
+  digitsEl.innerHTML=cnt.map((c,i)=>`<div class="d" style="background:${i==lastDigit?'#0f0':'#111'};color:${i==lastDigit?'#000':'#0f0'}"><b>${i}</b><br>${c}<br>${(c/total*100).toFixed(1)}%</div>`).join('');
+}
+for(let i=0;i<10;i++) digitsEl.innerHTML+=`<div class="d">${i}<br>0<br>0%</div>`;
+connect();
+</script>
+</body></html>
