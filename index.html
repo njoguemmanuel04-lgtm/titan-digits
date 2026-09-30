@@ -1,55 +1,81 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TITAN DIGITS</title>
-<style>body{background:#0a0a0a;color:#0f0;font-family:monospace;padding:10px}input,button{width:100%;padding:12px;margin:6px 0;background:#111;color:#0f0;border:1px solid #0f0;border-radius:6px}button{background:#0f0;color:#000;font-weight:bold}#log{height:200px;overflow:auto;border:1px solid #333;padding:8px;white-space:pre-wrap;font-size:12px}#last{font-size:48px;text-align:center;margin:10px 0}#digits{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.d{border:1px solid #333;padding:8px;text-align:center}</style>
-</head><body>
-<h2>⚡ TITAN DIGITS — DIRECT WS</h2>
-<input id="token" placeholder="Deriv API Token (pat_...)" type="password">
-<button onclick="saveToken()">SAVE TOKEN & START</button>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TITAN DIGITS - HTTPS</title>
+<style>
+body{background:#0a0e14;color:#fff;font-family:monospace;padding:10px}
+#last{font-size:80px;text-align:center;font-weight:bold;color:#00ff88}
+#log{height:200px;overflow:auto;background:#111;padding:8px;border:1px solid #333;margin-top:10px;font-size:12px}
+.digits{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:10px 0}
+.d{padding:8px;text-align:center;background:#1a1f2e;border-radius:5px}
+.d b{display:block;font-size:18px}
+button{width:100%;padding:12px;background:#00ff88;color:#000;border:0;border-radius:8px;font-weight:bold;margin-top:10px}
+input{width:100%;padding:10px;background:#1a1f2e;border:1px solid #333;color:#fff;border-radius:6px;margin-top:5px}
+</style>
+</head>
+<body>
+<h3 style="text-align:center">TITAN DIGITS - SAFARICOM FIX (HTTPS)</h3>
 <div id="last">-</div>
-<div id="digits"></div>
-<div id="log">> Ready...</div>
+<div id="status" style="text-align:center;color:#ffaa00">Loading via HTTPS...</div>
+<div class="digits" id="digits"></div>
+<div id="stats" style="text-align:center;font-size:13px"></div>
+<input id="token" placeholder="Paste Deriv API token pat_...">
+<button onclick="saveToken()">SAVE TOKEN & START TRADING</button>
+<div id="log"></div>
 <script>
-let ws, token=localStorage.getItem('deriv_token')||'', ticks=[], lastDigit='-';
-const logEl=document.getElementById('log'), lastEl=document.getElementById('last'), digitsEl=document.getElementById('digits');
-function log(m){ logEl.textContent += '\n'+m; logEl.scrollTop=logEl.scrollHeight; console.log(m); }
-function saveToken(){ token=document.getElementById('token').value.trim(); if(!token){log('> Enter token!');return;} localStorage.setItem('deriv_token',token); log('> TOKEN SAVED'); connect(); }
-if(token){ document.getElementById('token').value=token; }
+let token = localStorage.getItem('deriv_token')||'';
+let history=[];
+let lastDigit=-1;
+document.getElementById('token').value=token;
+let digitsDiv=document.getElementById('digits');
+for(let i=0;i<10;i++){ digitsDiv.innerHTML+=`<div class="d" id="d${i}"><b id="c${i}">0</b><span>${i}</span><br><small id="p${i}">0%</small></div>`; }
+function log(m){ let l=document.getElementById('log'); l.innerHTML+=`<div>> ${m}</div>`; l.scrollTop=l.scrollHeight; }
 
-const ENDPOINTS=[
-  'wss://ws.binaryws.com/websockets/v3?app_id=1089',
-  'wss://ws.derivws.com/websockets/v3?app_id=1089',
-  'wss://ws.deriv.com/websockets/v3?app_id=1089'
-];
-let ep=0;
-function connect(){
-  const url=ENDPOINTS[ep%ENDPOINTS.length];
-  log('> TRY '+url);
-  try{
-    if(ws) try{ws.close()}catch{}
-    ws=new WebSocket(url);
-    ws.onopen=()=>{ log('> CONNECTED '+url); ep=0; if(token) ws.send(JSON.stringify({authorize:token})); else ws.send(JSON.stringify({ticks:'R_100'})); };
-    ws.onmessage=(e)=>{
-      try{
-        const data=JSON.parse(e.data);
-        if(data.error){ log('> ERR '+data.error.message); return; }
-        if(data.authorize){ log('> AUTHORIZED '+data.authorize.logininfo.email); ws.send(JSON.stringify({ticks:'R_100'})); return; }
-        if(data.tick){
-          const q=data.tick.quote.toString(); const d=parseInt(q.slice(-1)); lastDigit=d;
-          lastEl.textContent=d; lastEl.style.color=d%2==0?'#0f0':'#ff0';
-          ticks.push(d); if(ticks.length>100) ticks.shift();
-          log('> TICK '+q+' LAST:'+d); updateDigits();
-        }
-      }catch(err){ log('> Parse err '+err); }
-    };
-    ws.onerror=()=>{ log('> ERR '+url+' -> next'); ep++; setTimeout(connect,1000); };
-    ws.onclose=()=>{ log('> CLOSED -> retry'); ep++; setTimeout(connect,1500); };
-  }catch(e){ log('> EX '+e.message); ep++; setTimeout(connect,1000); }
+async function fetchTick(){
+ try{
+   let r=await fetch('/api/tick?t='+Date.now());
+   let j=await r.json();
+   if(!j.quote){ log('API error '+JSON.stringify(j)); return; }
+   let quote=j.quote;
+   let digit=parseInt(quote.toString().slice(-1));
+   document.getElementById('last').innerText=digit;
+   document.getElementById('status').innerText=`TICK ${quote} LAST:${digit} via HTTPS`;
+   document.getElementById('status').style.color='#00ff88';
+   history.push(digit);
+   if(history.length>100) history.shift();
+   updateStats();
+   if(lastDigit!==digit){ lastDigit=digit; log(`TICK ${quote} LAST:${digit}`); }
+ }catch(e){ log('FETCH ERR '+e); document.getElementById('status').innerText='FETCH ERR - retrying...'; }
 }
-function updateDigits(){
-  const cnt=Array(10).fill(0); ticks.forEach(x=>cnt[x]++);
-  const total=ticks.length||1;
-  digitsEl.innerHTML=cnt.map((c,i)=>`<div class="d" style="background:${i==lastDigit?'#0f0':'#111'};color:${i==lastDigit?'#000':'#0f0'}"><b>${i}</b><br>${c}<br>${(c/total*100).toFixed(1)}%</div>`).join('');
+function updateStats(){
+ let counts=Array(10).fill(0);
+ history.forEach(d=>counts[d]++);
+ let total=history.length||1;
+ for(let i=0;i<10;i++){
+   document.getElementById('c'+i).innerText=counts[i];
+   document.getElementById('p'+i).innerText=Math.round(counts[i]*100/total)+'%';
+ }
+ // simple prediction: most frequent
+ let max=Math.max(...counts);
+ let pred=counts.indexOf(max);
+ let conf=Math.round(max*100/total);
+ document.getElementById('stats').innerHTML=`History:${total} | PREDICT:${pred} | CONF:${conf}%`;
 }
-for(let i=0;i<10;i++) digitsEl.innerHTML+=`<div class="d">${i}<br>0<br>0%</div>`;
-connect();
+
+setInterval(fetchTick,1000);
+fetchTick();
+
+function saveToken(){
+ let t=document.getElementById('token').value.trim();
+ if(!t){ alert('Paste token'); return; }
+ localStorage.setItem('deriv_token',t);
+ token=t;
+ log('Token saved! HTTPS ticks working! Trading will use WS via Vercel soon.');
+ alert('Token saved! If LAST is moving, you are DONE! No VPN needed!');
+}
+log('HTTPS MODE - Bypassing Safaricom WS block via Vercel USA server');
 </script>
-</body></html>
+</body>
+</html>
