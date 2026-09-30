@@ -1,42 +1,41 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TITAN V2.7 HTTP FALLBACK</title><style>body{background:#0a0a0f;color:#fff;font-family:Arial;padding:10px}.header{background:linear-gradient(90deg,#ff0040,#ff8000);padding:12px;border-radius:10px;text-align:center}.log{font-size:10px;color:#0f0;background:#000;padding:6px;height:140px;overflow:auto;margin-top:8px}.btn{width:100%;padding:12px;border:none;border-radius:6px;font-weight:bold;margin-top:6px}.last{font-size:50px;color:#ff8000;font-weight:bold}</style></head><body>
-<div class="header"><h2>TITAN V2.7 HTTP+WS</h2><div id="status">READY</div></div>
-<div style="background:#1a1a2e;padding:10px;margin:8px 0;border-radius:8px">Bal: <b id="bal">$0.00</b> <span id="email" style="font-size:10px"></span></div>
-<div style="background:#1a1a2e;border:2px solid #ff8000;padding:15px;border-radius:12px;text-align:center">LAST: <span id="last" class="last">-</span><div id="price"></div></div>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TITAN V2.8 HTTP FIX</title><style>body{background:#0a0a0f;color:#fff;font-family:Arial;padding:10px}.header{background:linear-gradient(90deg,#00ff88,#00ccff);padding:12px;border-radius:10px;text-align:center}.last{font-size:55px;color:#00ff88;font-weight:bold}.btn{width:100%;padding:12px;border:none;border-radius:6px;font-weight:bold;margin-top:6px}.log{font-size:10px;color:#0f0;background:#000;padding:6px;height:150px;overflow:auto}</style></head><body>
+<div class="header"><h2>TITAN V2.8 HTTP REAL</h2><div id="status">READY</div></div>
+<div style="background:#1a1a2e;padding:10px;margin:8px 0;border-radius:8px">Bal: <b id="bal">$0.00</b> <span id="email"></span></div>
+<div style="background:#1a1a2e;border:2px solid #00ff88;padding:15px;border-radius:12px;text-align:center">LAST: <span id="last" class="last">-</span><div id="price" style="color:#888"></div><div id="mode" style="font-size:10px;color:#00ff88;margin-top:5px"></div></div>
 <div id="digits" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0"></div>
-<select id="market" style="width:100%;padding:10px;background:#000;color:#fff"><option value="R_100">Vol 100</option><option value="R_50">Vol 50</option><option value="R_25">Vol 25</option></select>
+<select id="market" style="width:100%;padding:10px;background:#000;color:#fff"><option value="R_100">Vol 100</option><option value="R_50">Vol 50</option><option value="R_25">Vol 25</option><option value="R_10">Vol 10</option></select>
 <input id="tokenInput" style="width:100%;padding:10px;margin-top:8px;background:#000;color:#0f0;border:1px solid #0f0" placeholder="pat_ token">
 <button class="btn" style="background:#ff0040;color:#fff" onclick="location.href='https://oauth.deriv.com/oauth2/authorize?app_id=34xnDtEmqLPic3a8oz5zu&l=en&redirect_uri=https://titan-digits.vercel.app/callback.html'">OAUTH LOGIN</button>
 <button class="btn" style="background:#00ff88;color:#000" onclick="manualLogin()">LOGIN TOKEN</button>
 <div id="log" class="log"></div>
 <script>
-const URLS=['wss://gateway.deriv.com/websockets/v3?app_id=1089','wss://ws.derivws.com/websockets/v3?app_id=1089','wss://ws.binaryws.com/websockets/v3?app_id=1089'];
-const HTTP_URL='https://ws.binaryws.com/websockets/v3?app_id=1089';
-let counts=Array(10).fill(0),total=0,token=localStorage.getItem('deriv_token')||'',idx=0,ws,fail=0,useHTTP=false,timer=null;
+const WS_URLS=['wss://gateway.deriv.com/websockets/v3?app_id=1089','wss://ws.derivws.com/websockets/v3?app_id=1089'];
+const HTTP_URL='https://ws.derivws.com/websockets/v3?app_id=1089';
+let counts=Array(10).fill(0),total=0,token=localStorage.getItem('deriv_token')||'',ws,idx=0,fail=0,httpTimer=null,useHTTP=false,lastPrice='';
 document.getElementById('tokenInput').value=token;
 function log(m){let el=document.getElementById('log');el.innerHTML='> '+new Date().toLocaleTimeString()+' '+m+'<br>'+el.innerHTML;}
 function init(){let h='';for(let i=0;i<10;i++)h+=`<div style="background:#1a1a2e;padding:10px;border-radius:8px;text-align:center"><b>${i}</b><div id="p${i}">0% (0)</div></div>`;document.getElementById('digits').innerHTML=h;}init();
-function upd(last,price){document.getElementById('last').innerText=last;document.getElementById('price').innerText=price;counts[last]++;total++;for(let i=0;i<10;i++){let pct=total?((counts[i]/total)*100).toFixed(0):0;document.getElementById('p'+i).innerText=pct+'% ('+counts[i]+')';}}
-function startHTTP(){
-if(useHTTP) return; useHTTP=true; document.getElementById('status').innerHTML='● <span style="color:#00ff88">HTTP MODE ✅ (WS Blocked)</span>'; log('SWITCHED TO HTTP POLLING - WILL WORK!');
-timer=setInterval(async()=>{
+function upd(last,price){if(price==lastPrice) return; lastPrice=price; document.getElementById('last').innerText=last; document.getElementById('price').innerText=price; counts[last]++; total++; for(let i=0;i<10;i++){let pct=total?((counts[i]/total)*100).toFixed(0):0; document.getElementById('p'+i).innerText=pct+'% ('+counts[i]+')';}}
+async function doHTTP(){
 try{
-let r=await fetch(HTTP_URL,{method:'POST',body:JSON.stringify({ticks:document.getElementById('market').value})});
-let d=await r.json(); if(d.tick){let p=d.tick.quote.toString();upd(parseInt(p.slice(-1)),p);}
-if(token){let ra=await fetch(HTTP_URL,{method:'POST',body:JSON.stringify({authorize:token})});let da=await ra.json(); if(da.authorize){document.getElementById('bal').innerText='$'+da.authorize.balance;}}
+let r=await fetch(HTTP_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticks:document.getElementById('market').value})});
+let d=await r.json(); if(d.tick){let p=d.tick.quote.toString(); upd(parseInt(p.slice(-1)),p); document.getElementById('mode').innerText='HTTP POLLING ✅ - Works without WS!';}
+if(token){let ra=await fetch(HTTP_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({authorize:token})}); let da=await ra.json(); if(da.authorize){document.getElementById('bal').innerText='$'+da.authorize.balance.toFixed(2); document.getElementById('email').innerText=da.authorize.email;}}
 }catch(e){log('HTTP err '+e.message);}
-},1000);
 }
-function connect(){
+function startHTTP(){if(useHTTP) return; useHTTP=true; document.getElementById('status').innerHTML='● <span style="color:#00ff88">HTTP MODE ✅ ACTIVE</span>'; log('SWITCHED TO HTTP MODE - THIS WILL WORK!'); if(httpTimer) clearInterval(httpTimer); httpTimer=setInterval(doHTTP,1000); doHTTP();}
+function connectWS(){
 if(useHTTP) return;
-let url=URLS[idx]; log('Trying WS '+ (idx+1)+'/3 '+url.split('/')[2]); document.getElementById('status').innerText='CONNECTING Server '+(idx+1)+'/3';
+let url=WS_URLS[idx]; log('Trying WS '+(idx+1)+'/2 '+url.split('/')[2]); document.getElementById('status').innerText='CONNECTING WS '+(idx+1)+'/2';
 try{
 ws=new WebSocket(url);
-ws.onopen=()=>{log('WS OPENED ✅ Server '+(idx+1)); document.getElementById('status').innerHTML='CONNECTED ✅ WS Server '+(idx+1); fail=0; ws.send(JSON.stringify({ticks:document.getElementById('market').value})); if(token) ws.send(JSON.stringify({authorize:token}));};
-ws.onmessage=(e)=>{let d=JSON.parse(e.data); if(d.tick){let p=d.tick.quote.toString(); upd(parseInt(p.slice(-1)),p);} if(d.authorize){document.getElementById('bal').innerText='$'+d.authorize.balance; document.getElementById('email').innerText=d.authorize.email; log('AUTH OK $'+d.authorize.balance);}};
+ws.onopen=()=>{log('WS OPENED ✅ Server '+(idx+1)); document.getElementById('status').innerHTML='● <span style="color:#0f0">WS CONNECTED ✅ Server '+(idx+1)+'</span>'; fail=0; ws.send(JSON.stringify({ticks:document.getElementById('market').value})); if(token) ws.send(JSON.stringify({authorize:token}));};
+ws.onmessage=(e)=>{let d=JSON.parse(e.data); if(d.tick){let p=d.tick.quote.toString(); upd(parseInt(p.slice(-1)),p); document.getElementById('mode').innerText='WS MODE ✅ LIVE';} if(d.authorize){document.getElementById('bal').innerText='$'+d.authorize.balance.toFixed(2);}};
 ws.onerror=()=>{log('WS Error '+(idx+1)); ws.close();};
-ws.onclose=()=>{fail++; log('Closed fail='+fail); idx=(idx+1)%URLS.length; if(fail>=6){log('ALL WS BLOCKED -> HTTP'); startHTTP();} else setTimeout(connect,800);};
-}catch(e){fail++; if(fail>=6) startHTTP(); else setTimeout(connect,800);}
+ws.onclose=()=>{fail++; log('Closed fail='+fail); idx=(idx+1)%WS_URLS.length; if(fail>=3){log('WS BLOCKED - STARTING HTTP NOW!'); startHTTP();} else setTimeout(connectWS,700);};
+}catch(e){fail++; if(fail>=3) startHTTP(); else setTimeout(connectWS,700);}
 }
-function manualLogin(){let t=document.getElementById('tokenInput').value.trim(); localStorage.setItem('deriv_token',t); token=t; log('Token saved '+t.slice(0,8));}
-connect();
+function manualLogin(){let t=document.getElementById('tokenInput').value.trim(); localStorage.setItem('deriv_token',t); token=t; log('Token saved'); if(useHTTP) doHTTP();}
+connectWS();
+setTimeout(()=>{if(!useHTTP && total==0){log('WS still 0 after 5s -> Force HTTP'); startHTTP();}},5000);
 </script></body></html>
