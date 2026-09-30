@@ -1,79 +1,29 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TITAN V8.8 DIRECT (Choice 1)</title>
-<style>
-body{background:#000;color:#0f0;font-family:monospace;padding:10px;text-align:center}
-.box{border:1px solid #0f0;border-radius:10px;padding:10px;margin:10px 0;background:#0a0a0a}
-input{width:90%;padding:12px;background:#111;color:#0f0;border:1px solid #0f0;border-radius:8px;text-align:center}
-button{width:95%;padding:14px;margin:6px 0;border:0;border-radius:10px;font-weight:bold;font-size:16px}
-.btn-green{background:#0f0;color:#000}
-.btn-gray{background:#333;color:#fff}
-#log{height:260px;overflow:auto;text-align:left;border:1px solid #0f0;padding:6px;font-size:12px;background:#020}
-.price{font-size:28px;margin:15px}
-</style>
-</head>
-<body>
-<h2 style="color:#0f0">🔥 TITAN V8.8 DIRECT (Choice 1)</h2>
-<div class="box" id="acc">Account: Not connected<br>Bal: ---- | INIT<br>Mode: PHONE -> DERIV (Direct)</div>
-
-<div style="display:flex;gap:5px;justify-content:center;align-items:center">
-<input id="token" type="password" placeholder="Paste Deriv API token here">
-<button onclick="toggle()" style="width:50px" class="btn-gray">👁️</button>
-</div>
-<div style="font-size:11px;color:#888">Token hidden • stored locally only</div>
-
-<button class="btn-green" onclick="connectDirect()">CONNECT DIRECT TO DERIV</button>
-<button class="btn-gray" onclick="logout()">LOGOUT / CLEAR</button>
-
-<div class="price" id="price">Price: ----</div>
-<div id="digit" style="font-size:50px">-</div>
-<div id="info">Last: - | Hist: 0</div>
-
-<div id="log" class="box"></div>
-
-<script>
-let ws, tickHist=[];
-let tokenInput=document.getElementById('token');
-tokenInput.value=localStorage.getItem('titan_token')||'';
-function log(m){let l=document.getElementById('log');let t=new Date().toLocaleTimeString();l.innerHTML+=t+" "+m+"<br>";l.scrollTop=l.scrollHeight}
-function toggle(){tokenInput.type=tokenInput.type==='password'?'text':'password'}
-function saveToken(){let t=tokenInput.value.trim();if(t){localStorage.setItem('titan_token',t);log('🔒 Saved PAT ****'+t.slice(-4))}}
-function logout(){localStorage.removeItem('titan_token');tokenInput.value='';log('Cleared');document.getElementById('acc').innerHTML='Account: Not connected';}
-
-function connectDirect(){
- let token=tokenInput.value.trim();
- if(!token){alert('Paste token first');return}
- saveToken();
- if(ws)ws.close();
- log('Connecting to: wss://ws.derivws.com/websockets/v3?app_id=1089');
- ws=new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=1089');
- ws.onopen=()=>{log('✅ WS Open - Authorizing...');ws.send(JSON.stringify({authorize:token}))};
- ws.onmessage=(msg)=>{
-  let data=JSON.parse(msg.data);
-  if(data.error){log('❌ '+data.error.message); document.getElementById('acc').innerHTML='Error: '+data.error.message; return;}
-  if(data.authorize){
-    log('✅ Authorized: '+data.authorize.loginid);
-    document.getElementById('acc').innerHTML='Account: '+data.authorize.loginid+'<br>Bal: '+data.authorize.balance+' '+data.authorize.currency+' | LIVE<br>Mode: PHONE -> DERIV (Direct)';
-    ws.send(JSON.stringify({balance:1,subscribe:1}));
-    ws.send(JSON.stringify({ticks:'R_100',subscribe:1}));
-  }
-  if(data.balance){document.getElementById('acc').innerHTML=document.getElementById('acc').innerHTML.replace(/Bal:.*\|/,`Bal: ${data.balance.balance} ${data.balance.currency} |`)}
-  if(data.tick){
-    let price=data.tick.quote;
-    document.getElementById('price').innerText='Price: '+price;
-    let lastDigit=String(price).slice(-1);
-    document.getElementById('digit').innerText=lastDigit;
-    tickHist.unshift(lastDigit); if(tickHist.length>20)tickHist.pop();
-    document.getElementById('info').innerText=`Last: ${lastDigit} | Hist: ${tickHist.join('')}`;
-  }
- };
- ws.onerror=()=>{log('❌ WS error')};
- ws.onclose=(e)=>{log('⚠️ Closed Code='+e.code+' Reason='+(e.reason||'none')+' - Click CONNECT again')};
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TITAN V8.9 FIX 1006</title><style>body{background:#000;color:#0f0;font-family:monospace;padding:10px;text-align:center}.box{border:1px solid #0f0;border-radius:10px;padding:10px;margin:10px 0;background:#0a0a0a}input{width:90%;padding:12px;background:#111;color:#0f0;border:1px solid #0f0;border-radius:8px;text-align:center}button{width:95%;padding:14px;margin:6px 0;border:0;border-radius:10px;font-weight:bold;font-size:16px}.btn-green{background:#0f0;color:#000}.btn-gray{background:#333;color:#fff}#log{height:300px;overflow:auto;text-align:left;border:1px solid #0f0;padding:6px;font-size:12px;background:#020}.price{font-size:28px;margin:15px}</style></head><body><h2>🔥 TITAN V8.9 ANTI-1006</h2><div class="box" id="acc">Account: Not connected<br>Bal: ----<br>Mode: Multi-endpoint</div><div style="display:flex;gap:5px;justify-content:center"><input id="token" type="password" placeholder="Paste token"><button onclick="document.getElementById('token').type=document.getElementById('token').type==='password'?'text':'password'" style="width:50px" class="btn-gray">👁️</button></div><button class="btn-green" onclick="connectFix()">CONNECT ANTI-1006</button><button class="btn-gray" onclick="localStorage.clear();location.reload()">LOGOUT / CLEAR</button><div class="price" id="price">Price: ----</div><div id="digit" style="font-size:50px">-</div><div id="info">Hist: -</div><div id="log" class="box"></div><script>
+let ws, hist=[], endpoints=[
+'wss://ws.derivws.com/websockets/v3?app_id=1089',
+'wss://ws.binaryws.com/websockets/v3?app_id=1089',
+'wss://frontend.binaryws.com/websockets/v3?app_id=1089'
+], epIndex=0;
+let tIn=document.getElementById('token'); tIn.value=localStorage.getItem('titan_token')||'';
+function log(m){let l=document.getElementById('log');l.innerHTML+=new Date().toLocaleTimeString()+' '+m+'<br>';l.scrollTop=l.scrollHeight}
+function connectFix(){
+ let token=tIn.value.trim(); if(!token){alert('paste token');return} localStorage.setItem('titan_token',token);
+ epIndex=0; tryConnect(token);
 }
-if(tokenInput.value)log('V8.8 DIRECT ready - Click CONNECT');
-</script>
-</body>
-</html>
+function tryConnect(token){
+ if(epIndex>=endpoints.length){log('❌ All 3 endpoints blocked -> TURN ON WARP 1.1.1.1');return}
+ let url=endpoints[epIndex]; log('Trying EP'+(epIndex+1)+': '+url);
+ ws=new WebSocket(url);
+ let timeout=setTimeout(()=>{log('⏱️ Timeout EP'+(epIndex+1)); ws.close();},8000);
+ ws.onopen=()=>{clearTimeout(timeout); log('✅ WS Open EP'+(epIndex+1)+' - Authorizing'); ws.send(JSON.stringify({authorize:token}))};
+ ws.onmessage=(e)=>{
+  let d=JSON.parse(e.data); if(d.error){log('❌ '+d.error.message); return}
+  if(d.authorize){log('✅ Authorized '+d.authorize.loginid); document.getElementById('acc').innerHTML='Account: '+d.authorize.loginid+'<br>Bal: '+d.authorize.balance+' '+d.authorize.currency+'<br>EP: '+(epIndex+1); ws.send(JSON.stringify({balance:1,subscribe:1})); ws.send(JSON.stringify({ticks:'R_100',subscribe:1}))}
+  if(d.balance){document.getElementById('acc').innerHTML=document.getElementById('acc').innerHTML.split('<br>')[0]+'<br>Bal: '+d.balance.balance+' '+d.balance.currency+'<br>EP: '+(epIndex+1)}
+  if(d.tick){let p=d.tick.quote; document.getElementById('price').innerText='Price: '+p; let ld=String(p).slice(-1); document.getElementById('digit').innerText=ld; hist.unshift(ld); if(hist.length>20)hist.pop(); document.getElementById('info').innerText='Hist: '+hist.join('')}
+ };
+ ws.onerror=()=>{clearTimeout(timeout); log('❌ WS error EP'+(epIndex+1))};
+ ws.onclose=(ev)=>{clearTimeout(timeout); log('⚠️ Closed Code='+ev.code+' EP'+(epIndex+1)+' -> trying next'); epIndex++; setTimeout(()=>tryConnect(token),1000)};
+}
+log('V8.9 ready - Turn ON WARP then CONNECT');
+</script></body></html>
