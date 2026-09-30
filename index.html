@@ -1,29 +1,86 @@
-<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>TITAN V6 SECURE</title><style>body{background:#0a0a0a;color:#0f0;font-family:monospace;padding:10px}input{width:100%;padding:12px;background:#111;color:#0f0;border:1px solid #333}button{padding:12px;background:#0f0;border:0;font-weight:bold;width:100%;margin:6px 0;cursor:pointer}#log{height:320px;overflow:auto;background:#111;padding:8px;border:1px solid #333;font-size:12px;word-break:break-all}.ok{color:#0f0}.err{color:#f33}</style></head><body>
-<h3 style="color:#0f0">TITAN V6 SECURE - HIDDEN TOKEN</h3>
-<input id="token" type="password" placeholder="paste Deriv API token here (hidden)">
-<button onclick="save()">SAVE TOKEN (auto-hides)</button>
-<div>Price: <span id="price">-</span> | Last: <span id="last">-</span> | Hist: <span id="hist">0</span> | <span id="status">CONNECTING...</span></div>
-<button onclick="toggle()">START/STOP TRADING</button>
-<button onclick="clearToken()" style="background:#333;color:#aaa">CLEAR SAVED TOKEN</button>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TITAN V7 - NO VPN</title>
+<style>
+body{background:#000;color:#0f0;font-family:monospace;padding:10px}
+#price{font-size:28px;font-weight:bold}
+#digit{font-size:60px;text-align:center;margin:10px}
+#hist{display:flex;gap:5px;flex-wrap:wrap}
+.dot{width:28px;height:28px;border-radius:50%;background:#222;display:flex;align-items:center;justify-content:center}
+button{padding:10px 20px;background:#0f0;color:#000;border:none;font-weight:bold;margin-top:10px}
+#log{height:100px;overflow:auto;border:1px solid #0f0;padding:5px;margin-top:10px;font-size:12px}
+</style>
+</head>
+<body>
+<h2>🔥 TITAN V7 - SERVER PROXY (NO VPN)</h2>
+<div id="price">Price: ----</div>
+<div id="digit">-</div>
+<div id="hist"></div>
+<div id="stats">Last: - | Hist: 0 | Status: INIT</div>
+<button onclick="connect()">CONNECT V7</button>
 <div id="log"></div>
+
 <script>
-let ws=null,token=localStorage.getItem('deriv_token')||'',history=[],active=false,lastDigit=-1,endpointIndex=0;
-const ENDPOINTS=['wss://ws.derivws.com/websockets/v3?app_id=1089','wss://ws.binaryws.com/websockets/v3?app_id=1089','wss://ws.deriv.com/websockets/v3?app_id=1089'];
-const $=id=>document.getElementById(id);
-if(token){$('token').value='••••••••••••••••';$('token').placeholder='Token saved (hidden)';}
-function log(m,c=''){const d=$('log');d.innerHTML+='<div class="'+c+'">> '+m+'</div>';d.scrollTop=d.scrollHeight;console.log(m);}
-function connect(){
- const url=ENDPOINTS[endpointIndex%ENDPOINTS.length];
- log('TRYING '+url+' ...');$('status').textContent='TRYING...';
- ws=new WebSocket(url);
- ws.onopen=()=>{log('REAL CONNECTED '+url,'ok');$('status').textContent='REAL CONNECTED';ws.send(JSON.stringify({ticks:'R_100'}));if(token&&token.length>10&&!token.includes('•'))ws.send(JSON.stringify({authorize:token}));else if(localStorage.getItem('deriv_token'))ws.send(JSON.stringify({authorize:localStorage.getItem('deriv_token')}));};
- ws.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.tick){const q=parseFloat(m.tick.quote);const digit=Math.floor(q*100)%10;if(digit!==lastDigit){history.push(digit);if(history.length>20)history.shift();$('hist').textContent=history.length;$('last').textContent=digit;$('price').textContent=q.toFixed(2);lastDigit=digit;log('TICK '+q.toFixed(2)+' LAST:'+digit+' via REAL','ok');if(active&&history.length>=11)checkSignal();}}if(m.authorize){log('AUTH OK balance:'+m.authorize.balance+' '+m.authorize.currency,'ok');}if(m.buy){log('TRADE RESULT: contract '+m.buy.contract_id+' $'+m.buy.buy_price,'ok');}if(m.error){log('ERROR: '+m.error.code+' '+m.error.message,'err');}}catch{}};
- ws.onerror=()=>{log('WS ERROR '+url+' - TURN ON THUNDER VPN GERMANY!','err');};
- ws.onclose=()=>{log('WS CLOSED, retry in 2s...');$('status').textContent='RETRYING';endpointIndex++;setTimeout(connect,2000);};
+let lastDigit=null;
+let history=[];
+let priceEl=document.getElementById('price');
+let digitEl=document.getElementById('digit');
+let histEl=document.getElementById('hist');
+let statsEl=document.getElementById('stats');
+let logEl=document.getElementById('log');
+
+function log(m){
+  logEl.innerHTML = new Date().toLocaleTimeString() + ' ' + m + '<br>' + logEl.innerHTML;
 }
-function checkSignal(){const freq={};history.forEach(x=>freq[x]=(freq[x]||0)+1);let maxD=0,maxC=-1;for(let k in freq){if(freq[k]>maxC){maxC=freq[k];maxD=parseInt(k);}}if(maxC>=6){const stake=1;log('BUYING DIFF '+maxD+' stake $'+stake);const saved=localStorage.getItem('deriv_token');if(ws&&saved)ws.send(JSON.stringify({buy:1,price:stake,parameters:{amount:stake,basis:'stake',contract_type:'DIGITDIFF',symbol:'R_100',duration:1,duration_unit:'t',barrier:maxD.toString()}}));}}
-function save(){let v=$('token').value.trim();if(v.includes('•')){v=localStorage.getItem('deriv_token')||'';if(!v){log('No token found, paste new token','err');return;}}if(v.length<10){log('Paste valid token first!','err');return;}token=v;localStorage.setItem('deriv_token',token);$('token').value='••••••••••••••••';$('token').type='password';log('TOKEN SAVED & HIDDEN (local only)','ok');if(ws&&ws.readyState===1)ws.send(JSON.stringify({authorize:token}));}
-function clearToken(){localStorage.removeItem('deriv_token');token='';$('token').value='';$('token').placeholder='Token cleared - paste new';log('TOKEN CLEARED','err');}
-function toggle(){active=!active;log(active?'TRADING ACTIVE - waiting 11 ticks':'STOPPED');}
+
+function updateUI(q,d){
+  priceEl.innerText='Price: '+q;
+  digitEl.innerText=d;
+  statsEl.innerText='Last: '+d+' | Hist: '+history.length+' | Status: TICK OK VIA SERVER';
+  histEl.innerHTML='';
+  history.slice(-20).forEach(x=>{
+    let div=document.createElement('div');
+    div.className='dot';
+    div.innerText=x;
+    if(x==d) div.style.background='#0f0';
+    histEl.appendChild(div);
+  });
+}
+
+function connect(){
+  log('V7 CONNECTING VIA /api/tick (NO VPN NEEDED)');
+  const es = new EventSource('/api/tick');
+  
+  es.onopen = ()=>{ log('SERVER CONNECTED'); };
+  
+  es.onmessage = e=>{
+    try{
+      const m=JSON.parse(e.data);
+      if(m.tick){
+        const q=parseFloat(m.tick.quote);
+        const digit=String(m.tick.quote).slice(-1);
+        if(digit!==lastDigit){
+          history.push(digit);
+          if(history.length>50) history.shift();
+          lastDigit=digit;
+          updateUI(q,digit);
+        }
+      }
+    }catch(err){}
+  };
+  
+  es.onerror = ()=>{
+    log('SERVER RECONNECTING...');
+    es.close();
+    setTimeout(connect, 2000);
+  };
+}
+
+// Auto connect
 connect();
-</script></body></html>
+</script>
+</body>
+</html>
