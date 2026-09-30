@@ -1,65 +1,79 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TITAN V8.8 PROXY - CHOICE 2</title>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TITAN V8.8 DIRECT (Choice 1)</title>
 <style>
-body{background:#000;color:#0f0;font-family:monospace;padding:10px}
-#digit{font-size:70px;text-align:center;margin:10px}
-#hist{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}
-.dot{width:32px;height:32px;border-radius:50%;background:#111;border:1px solid #333;display:flex;align-items:center;justify-content:center;font-weight:bold}
-.dot.active{background:#0f0;color:#000}
-.row{display:flex;gap:8px}.row input{flex:1;padding:14px;background:#111;color:#0f0;border:1px solid #0f0;border-radius:8px}
-.eyeBtn{width:55px;background:#111;border:1px solid #0f0;border-radius:8px;color:#0f0;font-size:20px}
-button{padding:14px;width:100%;margin:6px 0;border-radius:8px;font-weight:bold;border:none}
-.btn{background:#0f0;color:#000}.btn2{background:#333;color:#fff}
-#log{height:200px;overflow:auto;border:1px solid #0f0;padding:5px;font-size:11px;background:#050505}
-#balBox{text-align:center;background:#111;padding:10px;border-radius:8px;margin-bottom:10px}
-.small{font-size:10px;color:#888;text-align:center}
+body{background:#000;color:#0f0;font-family:monospace;padding:10px;text-align:center}
+.box{border:1px solid #0f0;border-radius:10px;padding:10px;margin:10px 0;background:#0a0a0a}
+input{width:90%;padding:12px;background:#111;color:#0f0;border:1px solid #0f0;border-radius:8px;text-align:center}
+button{width:95%;padding:14px;margin:6px 0;border:0;border-radius:10px;font-weight:bold;font-size:16px}
+.btn-green{background:#0f0;color:#000}
+.btn-gray{background:#333;color:#fff}
+#log{height:260px;overflow:auto;text-align:left;border:1px solid #0f0;padding:6px;font-size:12px;background:#020}
+.price{font-size:28px;margin:15px}
 </style>
-</head><body>
-<h2 style="text-align:center">🔥 TITAN V8.8 PROXY (Choice 2)</h2>
-<div id="balBox">
-Account: <span id="lid">Not connected</span><br>
-Bal: <span id="bal">----</span> | <span id="st">INIT</span><br>
-<small>Mode: PHONE -> RENDER -> DERIV (shows real error)</small>
+</head>
+<body>
+<h2 style="color:#0f0">🔥 TITAN V8.8 DIRECT (Choice 1)</h2>
+<div class="box" id="acc">Account: Not connected<br>Bal: ---- | INIT<br>Mode: PHONE -> DERIV (Direct)</div>
+
+<div style="display:flex;gap:5px;justify-content:center;align-items:center">
+<input id="token" type="password" placeholder="Paste Deriv API token here">
+<button onclick="toggle()" style="width:50px" class="btn-gray">👁️</button>
 </div>
-<div class="row"><input id="pat" type="password" placeholder="Paste Deriv PAT"><button class="eyeBtn" onclick="document.getElementById('pat').type=document.getElementById('pat').type=='password'?'text':'password'">👁️</button></div>
-<div class="small">Token hidden •••• stored locally only</div>
-<button class="btn" onclick="connectProxy()">CONNECT VIA RENDER PROXY</button>
-<button class="btn2" onclick="localStorage.clear();location.reload()">LOGOUT / CLEAR</button>
-<div id="price" style="font-size:20px;text-align:center;margin:10px">Price: ----</div>
-<div id="digit">-</div>
-<div id="hist"></div>
-<div id="stats" style="text-align:center;margin:8px">Last: - | Hist: 0</div>
-<div id="log"></div>
+<div style="font-size:11px;color:#888">Token hidden • stored locally only</div>
+
+<button class="btn-green" onclick="connectDirect()">CONNECT DIRECT TO DERIV</button>
+<button class="btn-gray" onclick="logout()">LOGOUT / CLEAR</button>
+
+<div class="price" id="price">Price: ----</div>
+<div id="digit" style="font-size:50px">-</div>
+<div id="info">Last: - | Hist: 0</div>
+
+<div id="log" class="box"></div>
+
 <script>
-let h=[],last=null,ws=null;
-const logEl=document.getElementById('log');
-function log(m){logEl.innerHTML=new Date().toLocaleTimeString()+' '+m+'<br>'+logEl.innerHTML; console.log(m);}
-let saved=localStorage.getItem('deriv_pat'); if(saved){document.getElementById('pat').value=saved; log('🔒 Saved PAT ****'+saved.slice(-4));}
-function ui(q,d){document.getElementById('price').innerText='Price: '+q;document.getElementById('digit').innerText=d;document.getElementById('stats').innerText=`Last: ${d} | Hist: ${h.length}`; const he=document.getElementById('hist'); he.innerHTML=''; h.slice(-20).forEach(x=>{let div=document.createElement('div');div.className='dot'+(x==d?' active':'');div.innerText=x;he.appendChild(div)});}
-function connectProxy(){
- let pat=document.getElementById('pat').value.trim(); if(!pat){alert('Paste PAT first');return}
- localStorage.setItem('deriv_pat',pat);
- log('🔒 Using Render proxy /proxy with PAT ****'+pat.slice(-4));
- const proto = location.protocol==='https:'?'wss:':'ws:';
- const proxyUrl = proto+'//'+location.host+'/proxy';
- log('Connecting to: '+proxyUrl);
- try{
-  ws=new WebSocket(proxyUrl);
-  ws.onopen=()=>{log('✅ Connected to Render proxy');document.getElementById('st').innerText='RENDER LIVE';ws.send(JSON.stringify({authorize:pat}));};
-  ws.onmessage=e=>{
-   try{
-    const d=JSON.parse(e.data);
-    if(d.msg_type==='log'){log('📡 '+d.msg);return;}
-    if(d.error){log('❌ REAL DERIV ERROR: '+d.error.message+' | Code:'+d.error.code);return;}
-    if(d.msg_type==='authorize'){log('✅ Authorized '+d.authorize.loginid);document.getElementById('lid').innerText=d.authorize.loginid; ws.send(JSON.stringify({balance:1,subscribe:1})); ws.send(JSON.stringify({ticks:'R_100',subscribe:1}));}
-    if(d.msg_type==='balance'){document.getElementById('bal').innerText=d.balance.balance+' '+d.balance.currency;}
-    if(d.tick){const q=d.tick.quote;const dig=String(q).split('.').pop().slice(-1);if(/^[0-9]$/.test(dig)&&dig!==last){h.push(dig);if(h.length>100)h.shift();last=dig;ui(q,dig);}}
-   }catch(err){log('Parse err '+err);}
-  };
-  ws.onerror=()=>{log('❌ Proxy WS error');};
-  ws.onclose=ev=>{log(`⚠️ Proxy closed Code=${ev.code} Reason=${ev.reason||'none'}`);};
- }catch(err){log('Exception '+err);}
+let ws, tickHist=[];
+let tokenInput=document.getElementById('token');
+tokenInput.value=localStorage.getItem('titan_token')||'';
+function log(m){let l=document.getElementById('log');let t=new Date().toLocaleTimeString();l.innerHTML+=t+" "+m+"<br>";l.scrollTop=l.scrollHeight}
+function toggle(){tokenInput.type=tokenInput.type==='password'?'text':'password'}
+function saveToken(){let t=tokenInput.value.trim();if(t){localStorage.setItem('titan_token',t);log('🔒 Saved PAT ****'+t.slice(-4))}}
+function logout(){localStorage.removeItem('titan_token');tokenInput.value='';log('Cleared');document.getElementById('acc').innerHTML='Account: Not connected';}
+
+function connectDirect(){
+ let token=tokenInput.value.trim();
+ if(!token){alert('Paste token first');return}
+ saveToken();
+ if(ws)ws.close();
+ log('Connecting to: wss://ws.derivws.com/websockets/v3?app_id=1089');
+ ws=new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=1089');
+ ws.onopen=()=>{log('✅ WS Open - Authorizing...');ws.send(JSON.stringify({authorize:token}))};
+ ws.onmessage=(msg)=>{
+  let data=JSON.parse(msg.data);
+  if(data.error){log('❌ '+data.error.message); document.getElementById('acc').innerHTML='Error: '+data.error.message; return;}
+  if(data.authorize){
+    log('✅ Authorized: '+data.authorize.loginid);
+    document.getElementById('acc').innerHTML='Account: '+data.authorize.loginid+'<br>Bal: '+data.authorize.balance+' '+data.authorize.currency+' | LIVE<br>Mode: PHONE -> DERIV (Direct)';
+    ws.send(JSON.stringify({balance:1,subscribe:1}));
+    ws.send(JSON.stringify({ticks:'R_100',subscribe:1}));
+  }
+  if(data.balance){document.getElementById('acc').innerHTML=document.getElementById('acc').innerHTML.replace(/Bal:.*\|/,`Bal: ${data.balance.balance} ${data.balance.currency} |`)}
+  if(data.tick){
+    let price=data.tick.quote;
+    document.getElementById('price').innerText='Price: '+price;
+    let lastDigit=String(price).slice(-1);
+    document.getElementById('digit').innerText=lastDigit;
+    tickHist.unshift(lastDigit); if(tickHist.length>20)tickHist.pop();
+    document.getElementById('info').innerText=`Last: ${lastDigit} | Hist: ${tickHist.join('')}`;
+  }
+ };
+ ws.onerror=()=>{log('❌ WS error')};
+ ws.onclose=(e)=>{log('⚠️ Closed Code='+e.code+' Reason='+(e.reason||'none')+' - Click CONNECT again')};
 }
-if(saved) log('V8.8 PROXY ready - Click CONNECT to see REAL Deriv error'); else log('V8.8 PROXY ready - Paste PAT then CONNECT');
-</script></body></html>
+if(tokenInput.value)log('V8.8 DIRECT ready - Click CONNECT');
+</script>
+</body>
+</html>
