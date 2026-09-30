@@ -1,109 +1,206 @@
 const express = require('express');
+const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
 
 const app = express();
+const server = http.createServer(app);
+
 const PORT = process.env.PORT || 10000;
+const APP_ID = process.env.DERIV_APP_ID || '1089';
+
+const DERIV_URL =
+  `wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`;
 
 app.use(express.json());
 app.use(express.static(__dirname));
 
-/*
-  TITAN -> Render -> Deriv
-  SSE endpoint used by index.html
-*/
-app.get('/api/tick', (req, res) => {
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.flushHeaders();
-
-  let closed = false;
-
-  const send = (data) => {
-    if (!closed) {
-      res.write(`data: ${JSON.stringify(data)}\n\n`);
-    }
-  };
-
-  send({
-    log: "Connecting Titan to Deriv..."
-  });
-
-  const deriv = new WebSocket(
-    "wss://ws.binaryws.com/websockets/v3?app_id=1089"
-  );
-
-  deriv.on("open", () => {
-    send({
-      log: "Connected to Deriv"
-    });
-
-    deriv.send(
-      JSON.stringify({
-        ticks: "R_100",
-        subscribe: 1
-      })
-    );
-  });
-
-  deriv.on("message", (data) => {
-    try {
-      const message = JSON.parse(data.toString());
-      send(message);
-    } catch (error) {
-      send({
-        error: "Invalid Deriv response"
-      });
-    }
-  });
-
-  deriv.on("error", (error) => {
-    console.error("Deriv WebSocket error:", error.message);
-    send({
-      error: "Deriv connection error",
-      message: error.message
-    });
-  });
-
-  deriv.on("close", () => {
-    send({
-      log: "Deriv connection closed"
-    });
-    if (!closed) {
-      res.end();
-    }
-  });
-
-  req.on("close", () => {
-    closed = true;
-    try {
-      deriv.close();
-    } catch {}
-    try {
-      res.end();
-    } catch {}
-  });
-});
-
-/*
-  Simple health check
-*/
-app.get("/health", (req, res) => {
+app.get('/health', (req, res) => {
   res.json({
-    status: "online",
-    titan: "V8.2",
+    status: 'online',
+    titan: 'V8.7',
+    deriv_proxy: true,
     time: new Date().toISOString()
   });
 });
 
-/*
-  Main Titan page
-*/
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`TITAN V8.2 running on port ${PORT}`);
+/*
+  TITAN -> RENDER -> DERIV
+
+  The phone connects to Render.
+  Render connects to Deriv.
+*/
+
+const derivProxy = new WebSocket.Server({
+  noServer: true
+});
+
+derivProxy.on('connection', (client) => {
+
+  let upstream;
+
+  function send(data) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(data));
+    }
+  }
+
+  send({
+    type: 'proxy',
+    status: 'connecting',
+    message: 'Render is connecting Titan to Deriv...'
+  });
+
+  try {
+
+    upstream = new WebSocket(DERIV_URL);
+
+    upstream.on('open', () => {
+
+      send({
+        type: 'proxy',
+        status: 'connected',
+        message: 'Render connected to Deriv'
+      });
+
+    });
+
+    upstream.on('message', (data) => {
+
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(data.toString());
+      }
+
+    });
+
+    upstream.on('error', (error) => {
+
+      console.error(
+        'Deriv upstream error:',
+        error.message
+      );
+
+      send({
+        type: 'proxy',
+        status: 'error',
+        message: 'Render could not reach Deriv'
+      });
+
+    });
+
+    upstream.on('close', (code, reason) => {
+
+      send({
+        type: 'proxy',
+        status: 'closed',
+        message: 'Deriv connection closed',
+        code: code,
+        reason: reason
+          ? reason.toString()
+          : ''
+      });
+
+      if (client.readyState === WebSocket.OPEN) {
+        client.close();
+      }
+
+    });
+
+    client.on('message', (data) => {
+
+      if (
+        !upstream ||
+        upstream.readyState !== WebSocket.OPEN
+      ) {
+
+        send({
+          type: 'proxy',
+          status: 'waiting',
+          message: 'Waiting for Deriv connection...'
+        });
+
+        return;
+      }
+
+      upstream.send(data.toString());
+
+    });
+
+    client.on('close', () => {
+
+      try {
+        if (upstream) {
+          upstream.close();
+        }
+      } catch {}
+
+    });
+
+    client.on('error', () => {
+
+      try {
+        if (upstream) {
+          upstream.close();
+        }
+      } catch {}
+
+    });
+
+  } catch (error) {
+
+    send({
+      type: 'proxy',
+      status: 'error',
+      message: 'Could not create Deriv connection'
+    });
+
+    try {
+      client.close();
+    } catch {}
+
+  }
+
+});
+
+server.on('upgrade', (request, socket, head) => {
+
+  const url = new URL(
+    request.url,
+    `http://${request.headers.host}`
+  );
+
+  if (url.pathname !== '/deriv') {
+    socket.destroy();
+    return;
+  }
+
+  derivProxy.handleUpgrade(
+    request,
+    socket,
+    head,
+    (client) => {
+      derivProxy.emit(
+        'connection',
+        client,
+        request
+      );
+    }
+  );
+
+});
+
+server.listen(PORT, '0.0.0.0', () => {
+
+  console.log(
+    `TITAN V8.7 running on port ${PORT}`
+  );
+
+  console.log(
+    `Deriv proxy enabled: ${DERIV_URL}`
+  );
+
 });
