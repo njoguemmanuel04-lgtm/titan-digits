@@ -1,94 +1,50 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TITAN DIGITS FINAL</title><style>body{background:#0a0e14;color:#fff;font-family:monospace;text-align:center;margin:0;padding:10px}h1{font-size:18px;margin:10px 0}#big{font-size:90px;color:#00ff88;font-weight:bold;line-height:1}#info{color:#00ff88;margin:8px 0;font-size:14px}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:10px 0}.box{background:#1a2332;padding:8px 2px;border-radius:8px;border:2px solid transparent}.box.pred{border-color:#00ff88;box-shadow:0 0 10px #00ff88}.box b{font-size:20px;display:block}.box span{font-size:11px;color:#8aa}.row{display:flex;justify-content:center;gap:10px;margin:8px 0;font-size:14px}input{width:90%;padding:12px;background:#111827;color:#fff;border:1px solid #333;border-radius:8px;text-align:center}button{width:92%;padding:14px;background:#00ff88;color:#000;font-weight:bold;border:none;border-radius:10px;margin:8px 0;font-size:16px}#log{background:#000;text-align:left;height:160px;overflow:auto;padding:8px;font-size:11px;color:#0f0;border-radius:8px}</style></head><body>
-<h1>TITAN DIGITS - FINAL FIX</h1>
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TITAN DIGITS REAL</title><style>body{background:#0a0e14;color:#fff;font-family:monospace;text-align:center;margin:0;padding:10px}h1{font-size:18px;margin:10px 0}#big{font-size:90px;color:#00ff88;font-weight:bold;line-height:1}#info{color:#00ff88;margin:8px 0;font-size:14px}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:10px 0}.box{background:#1a2332;padding:8px 2px;border-radius:8px;border:2px solid transparent}.box.pred{border-color:#00ff88;box-shadow:0 0 10px #00ff88}.box b{font-size:20px;display:block}.box span{font-size:11px;color:#8aa}.row{display:flex;justify-content:center;gap:10px;margin:8px 0;font-size:14px}input{width:90%;padding:12px;background:#111827;color:#fff;border:1px solid #333;border-radius:8px;text-align:center}button{width:92%;padding:14px;background:#00ff88;color:#000;font-weight:bold;border:none;border-radius:10px;margin:8px 0;font-size:16px}#log{background:#000;text-align:left;height:160px;overflow:auto;padding:8px;font-size:11px;color:#0f0;border-radius:8px}</style></head><body>
+<h1>TITAN DIGITS - REAL TICK V2</h1>
 <div id="big">-</div>
-<div id="info">Connecting...</div>
+<div id="info">Connecting REAL...</div>
 <div class="grid" id="grid"></div>
 <div class="row"><span id="hist">History:0</span> | <span id="pred">PREDICT:-</span> | <span id="conf">CONF:0%</span></div>
-<input id="tok" type="password" placeholder="Paste Deriv Token (hidden)">
+<input id="tok" type="password" placeholder="Paste Deriv Token">
 <div><button onclick="toggle()">👁 Show / Hide Token</button></div>
-<input id="stake" type="number" value="1" placeholder="Stake $">
+<input id="stake" type="number" value="1">
 <button id="btn" onclick="saveTok()">SAVE TOKEN & START TRADING</button>
 <div style="font-size:11px;color:#888;margin:4px">Token stored only in YOUR phone</div>
 <div id="log"></div>
 <script>
-let history=[], token=localStorage.getItem('deriv_token')||'', trading=false, lastQuote=0;
-let counts=Array(10).fill(0);
+let history=[], token=localStorage.getItem('deriv_token')||'', trading=false, lastQ=0;
+let counts=Array(10).fill(0), ws=null;
 document.getElementById('tok').value=token;
 function toggle(){let e=document.getElementById('tok');e.type=e.type==='password'?'text':'password'}
 function log(m){let l=document.getElementById('log');l.innerHTML='> '+m+'<br>'+l.innerHTML}
 function saveTok(){token=document.getElementById('tok').value.trim();if(!token)return alert('Paste token');localStorage.setItem('deriv_token',token);trading=true;document.getElementById('btn').innerText='TRADING ACTIVE ✓';log('TOKEN SAVED TRADING ON')}
-function updateGrid(predict){
- let g=document.getElementById('grid');g.innerHTML='';
- let total=history.length||1;
- for(let i=0;i<10;i++){
-   let pct=Math.round((counts[i]/total)*100);
-   let cls='box'+(predict===i?' pred':'');
-   g.innerHTML+=`<div class="${cls}"><b>${i}</b><span>${pct}%</span></div>`;
- }
-}
-async function getTick(){
- try{
-  let r=await fetch('/api/tick?t='+Date.now());
-  let j=await r.json();
-  let q=parseFloat(j.quote);
-  if(!q) throw new Error('no quote');
-  let lastDigit=parseInt(q.toString().slice(-1));
-  if(isNaN(lastDigit)){let s=q.toFixed(2);lastDigit=parseInt(s.slice(-1));}
-  lastQuote=q;
+function updateGrid(p){let g=document.getElementById('grid');g.innerHTML='';let total=history.length||1;for(let i=0;i<10;i++){let pct=Math.round((counts[i]/total)*100);let cls='box'+(p===i?' pred':'');g.innerHTML+=`<div class="${cls}"><b>${i}</b><span>${pct}%</span></div>`}}
+function handleTick(q,source){
+  let lastDigit=parseInt(q.toString().slice(-1)); if(isNaN(lastDigit)){let s=q.toFixed(2); lastDigit=parseInt(s.slice(-1));}
   document.getElementById('big').innerText=lastDigit;
-  document.getElementById('big').style.color='#00ff88';
-  document.getElementById('info').innerText=`TICK ${q} LAST:${lastDigit} via ${j.source||'HTTPS'}`;
-  if(history.length===0 || history[history.length-1]!==lastDigit || true){
-    // add only if new tick different time? For HTTPS fallback we add each poll if different quote
-    if(history.length===0 || lastQuote!==history.lastQuote){
-      history.push(lastDigit);
-      if(history.length>100) history.shift();
-      counts[lastDigit]++;
-      // recount to keep accurate
-      counts=Array(10).fill(0);
-      history.forEach(d=>counts[d]++);
-    }
-    history.lastQuote=q;
-  }
-  // PREDICTION: least frequent digit in last 50
-  let total=history.length;
-  document.getElementById('hist').innerText='History:'+total;
+  document.getElementById('info').innerText=`TICK ${q} LAST:${lastDigit} via ${source}`;
+  if(lastQ!==q){history.push(lastDigit); if(history.length>100) history.shift(); counts=Array(10).fill(0); history.forEach(d=>counts[d]++); lastQ=q;}
+  let total=history.length; document.getElementById('hist').innerText='History:'+total;
   if(total>=5){
-    let minIdx=0;let minVal=counts[0];
-    for(let i=1;i<10;i++){if(counts[i]<minVal){minVal=counts[i];minIdx=i;}}
-    let maxCount=Math.max(...counts);
-    let conf=Math.round(((total - minVal)/total)*60 + 20); // 20-80%
-    if(conf>85) conf=85; // cap
-    // find most under-represented
-    let predict=minIdx;
-    document.getElementById('pred').innerText='PREDICT:'+predict;
-    document.getElementById('conf').innerText='CONF:'+conf+'%';
-    updateGrid(predict);
-    log(`TICK ${q} LAST:${lastDigit} | PRED:${predict} ${conf}%`);
-    if(trading && conf>=68 && total>15){
-      trading=false;
-      log(`BUYING DIGIT ${predict} STAKE ${document.getElementById('stake').value}`);
-      try{
-        let stake=parseFloat(document.getElementById('stake').value)||1;
-        let resp=await fetch('/api/trade',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,buy_params:{amount:stake,basis:'stake',contract_type:'DIGITUNDER',currency:'USD',duration:1,duration_unit:'t',symbol:'R_100',barrier:predict.toString()}})});
-        let jr=await resp.json();
-        log('TRADE RESULT: '+JSON.stringify(jr).slice(0,120));
-      }catch(e){log('TRADE ERROR:'+e.message)}
-      setTimeout(()=>trading=true,8000);
-    }
-  }else{
-    document.getElementById('pred').innerText='PREDICT:-';
-    document.getElementById('conf').innerText='CONF:'+Math.round((total/15)*50)+'%';
-    updateGrid(-1);
-    log(`TICK ${q} LAST:${lastDigit} collecting...`);
-  }
- }catch(e){
-  document.getElementById('info').innerText='Retrying... '+e.message;
-  log('TICK ERROR:'+e.message);
- }
+    let minIdx=0; let minVal=counts[0]; for(let i=1;i<10;i++){if(counts[i]<minVal){minVal=counts[i];minIdx=i;}}
+    let conf=Math.round(((total-minVal)/total)*60+20); if(conf>85) conf=85;
+    document.getElementById('pred').innerText='PREDICT:'+minIdx; document.getElementById('conf').innerText='CONF:'+conf+'%'; updateGrid(minIdx);
+    log(`TICK ${q} LAST:${lastDigit} | PRED:${minIdx} ${conf}%`);
+    if(trading && conf>=68 && total>15){trading=false; log(`BUYING DIGIT ${minIdx} $${document.getElementById('stake').value}`); fetch('/api/trade',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,buy_params:{amount:parseFloat(document.getElementById('stake').value)||1,basis:'stake',contract_type:'DIGITUNDER',currency:'USD',duration:1,duration_unit:'t',symbol:'R_100',barrier:minIdx.toString()}})}).then(r=>r.json()).then(j=>{log('TRADE: '+JSON.stringify(j).slice(0,150))}).catch(e=>log('TRADE ERR:'+e.message)).finally(()=>setTimeout(()=>trading=true,8000));}
+  }else{ document.getElementById('pred').innerText='PREDICT:-'; document.getElementById('conf').innerText='CONF:'+Math.round((total/15)*50)+'%'; updateGrid(-1); log(`TICK ${q} LAST:${lastDigit} collecting...`);}
 }
-setInterval(getTick,1200);
-getTick();
+function connectReal(){
+  try{ ws=new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
+    ws.onopen=()=>{log('REAL WS CONNECTED'); ws.send(JSON.stringify({ticks:'R_100'}));};
+    ws.onmessage=(e)=>{try{let m=JSON.parse(e.data); if(m.tick){handleTick(m.tick.quote,'REAL');}}catch{}};
+    ws.onerror=()=>{log('REAL WS ERROR fallback to HTTPS'); fallbackPoll();};
+    ws.onclose=()=>{log('REAL WS CLOSED reconnecting...'); setTimeout(connectReal,2000);};
+  }catch(e){fallbackPoll();}
+}
+async function fallbackPoll(){
+  try{let r=await fetch('/api/tick?t='+Date.now()); let j=await r.json(); if(j.quote) handleTick(parseFloat(j.quote),j.source||'fallback');}catch(e){log('FALLBACK ERR:'+e.message)}
+  setTimeout(fallbackPoll,1200);
+}
+connectReal();
 updateGrid(-1);
-log('FINAL VERSION LOADED - Fixed 420% bug');
+log('REAL TICK V2 LOADED - Direct phone to Deriv');
 </script></body></html>
