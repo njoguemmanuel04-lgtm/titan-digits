@@ -1,30 +1,29 @@
-<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>TITAN V5 DIRECT</title><style>body{background:#0a0a0a;color:#0f0;font-family:monospace;padding:10px}button{padding:12px;background:#0f0;border:0;font-weight:bold;width:100%;margin:5px 0}#log{height:300px;overflow:auto;background:#111;padding:8px;border:1px solid #333;font-size:12px}</style></head><body>
-<h3>TITAN V5 DIRECT - WARP ONLY</h3>
-<input id="token" placeholder="paste Deriv token" style="width:100%;padding:10px"><button onclick="save()">SAVE TOKEN</button>
+<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>TITAN V6 SECURE</title><style>body{background:#0a0a0a;color:#0f0;font-family:monospace;padding:10px}input{width:100%;padding:12px;background:#111;color:#0f0;border:1px solid #333}button{padding:12px;background:#0f0;border:0;font-weight:bold;width:100%;margin:6px 0;cursor:pointer}#log{height:320px;overflow:auto;background:#111;padding:8px;border:1px solid #333;font-size:12px;word-break:break-all}.ok{color:#0f0}.err{color:#f33}</style></head><body>
+<h3 style="color:#0f0">TITAN V6 SECURE - HIDDEN TOKEN</h3>
+<input id="token" type="password" placeholder="paste Deriv API token here (hidden)">
+<button onclick="save()">SAVE TOKEN (auto-hides)</button>
 <div>Price: <span id="price">-</span> | Last: <span id="last">-</span> | Hist: <span id="hist">0</span> | <span id="status">CONNECTING...</span></div>
-<button onclick="toggle()">START/STOP</button>
+<button onclick="toggle()">START/STOP TRADING</button>
+<button onclick="clearToken()" style="background:#333;color:#aaa">CLEAR SAVED TOKEN</button>
 <div id="log"></div>
 <script>
 let ws=null,token=localStorage.getItem('deriv_token')||'',history=[],active=false,lastDigit=-1,endpointIndex=0;
 const ENDPOINTS=['wss://ws.derivws.com/websockets/v3?app_id=1089','wss://ws.binaryws.com/websockets/v3?app_id=1089','wss://ws.deriv.com/websockets/v3?app_id=1089'];
 const $=id=>document.getElementById(id);
-if(token)$('token').value=token;
-function log(m){const d=$('log');d.innerHTML+='<div>> '+m+'</div>';d.scrollTop=d.scrollHeight;console.log(m);}
+if(token){$('token').value='••••••••••••••••';$('token').placeholder='Token saved (hidden)';}
+function log(m,c=''){const d=$('log');d.innerHTML+='<div class="'+c+'">> '+m+'</div>';d.scrollTop=d.scrollHeight;console.log(m);}
 function connect(){
  const url=ENDPOINTS[endpointIndex%ENDPOINTS.length];
  log('TRYING '+url+' ...');$('status').textContent='TRYING...';
  ws=new WebSocket(url);
- ws.onopen=()=>{log('REAL CONNECTED '+url);$('status').textContent='REAL CONNECTED';ws.send(JSON.stringify({ticks:'R_100'}));if(token)ws.send(JSON.stringify({authorize:token}));};
- ws.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.tick){const q=parseFloat(m.tick.quote);const digit=Math.floor(q*100)%10;if(digit!==lastDigit){history.push(digit);if(history.length>20)history.shift();$('hist').textContent=history.length;$('last').textContent=digit;$('price').textContent=q.toFixed(2);lastDigit=digit;log('TICK '+q.toFixed(2)+' LAST:'+digit+' via REAL');if(active&&history.length>=11)checkSignal(digit,q);}}if(m.authorize){log('AUTH OK balance:'+m.authorize.balance);}if(m.buy){log('TRADE RESULT: '+JSON.stringify(m.buy).slice(0,120));}if(m.error){log('ERROR: '+JSON.stringify(m.error));}}catch(err){}};
- ws.onerror=()=>{log('WS ERROR '+url);};
- ws.onclose=()=>{log('WS CLOSED, retry...');$('status').textContent='RETRYING';endpointIndex++;setTimeout(connect,2000);};
+ ws.onopen=()=>{log('REAL CONNECTED '+url,'ok');$('status').textContent='REAL CONNECTED';ws.send(JSON.stringify({ticks:'R_100'}));if(token&&token.length>10&&!token.includes('•'))ws.send(JSON.stringify({authorize:token}));else if(localStorage.getItem('deriv_token'))ws.send(JSON.stringify({authorize:localStorage.getItem('deriv_token')}));};
+ ws.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.tick){const q=parseFloat(m.tick.quote);const digit=Math.floor(q*100)%10;if(digit!==lastDigit){history.push(digit);if(history.length>20)history.shift();$('hist').textContent=history.length;$('last').textContent=digit;$('price').textContent=q.toFixed(2);lastDigit=digit;log('TICK '+q.toFixed(2)+' LAST:'+digit+' via REAL','ok');if(active&&history.length>=11)checkSignal();}}if(m.authorize){log('AUTH OK balance:'+m.authorize.balance+' '+m.authorize.currency,'ok');}if(m.buy){log('TRADE RESULT: contract '+m.buy.contract_id+' $'+m.buy.buy_price,'ok');}if(m.error){log('ERROR: '+m.error.code+' '+m.error.message,'err');}}catch{}};
+ ws.onerror=()=>{log('WS ERROR '+url+' - TURN ON THUNDER VPN GERMANY!','err');};
+ ws.onclose=()=>{log('WS CLOSED, retry in 2s...');$('status').textContent='RETRYING';endpointIndex++;setTimeout(connect,2000);};
 }
-function checkSignal(d,q){
- // Simple diff logic: most frequent digit in last 11
- const freq={};history.forEach(x=>freq[x]=(freq[x]||0)+1);let maxD=0,maxC=-1;for(let k in freq){if(freq[k]>maxC){maxC=freq[k];maxD=parseInt(k);}}
- if(maxC>=6){const stake=1;log('BUYING DIFF '+maxD+' $'+stake);ws.send(JSON.stringify({buy:1,price:stake,parameters:{amount:stake,basis:'stake',contract_type:'DIGITDIFF',symbol:'R_100',duration:1,duration_unit:'t',barrier:maxD.toString()}}));}
-}
-function save(){token=$('token').value.trim();localStorage.setItem('deriv_token',token);log('TOKEN SAVED');if(ws&&ws.readyState===1)ws.send(JSON.stringify({authorize:token}));}
-function toggle(){active=!active;log(active?'TRADING ACTIVE':'STOPPED');}
+function checkSignal(){const freq={};history.forEach(x=>freq[x]=(freq[x]||0)+1);let maxD=0,maxC=-1;for(let k in freq){if(freq[k]>maxC){maxC=freq[k];maxD=parseInt(k);}}if(maxC>=6){const stake=1;log('BUYING DIFF '+maxD+' stake $'+stake);const saved=localStorage.getItem('deriv_token');if(ws&&saved)ws.send(JSON.stringify({buy:1,price:stake,parameters:{amount:stake,basis:'stake',contract_type:'DIGITDIFF',symbol:'R_100',duration:1,duration_unit:'t',barrier:maxD.toString()}}));}}
+function save(){let v=$('token').value.trim();if(v.includes('•')){v=localStorage.getItem('deriv_token')||'';if(!v){log('No token found, paste new token','err');return;}}if(v.length<10){log('Paste valid token first!','err');return;}token=v;localStorage.setItem('deriv_token',token);$('token').value='••••••••••••••••';$('token').type='password';log('TOKEN SAVED & HIDDEN (local only)','ok');if(ws&&ws.readyState===1)ws.send(JSON.stringify({authorize:token}));}
+function clearToken(){localStorage.removeItem('deriv_token');token='';$('token').value='';$('token').placeholder='Token cleared - paste new';log('TOKEN CLEARED','err');}
+function toggle(){active=!active;log(active?'TRADING ACTIVE - waiting 11 ticks':'STOPPED');}
 connect();
 </script></body></html>
