@@ -1,5 +1,7 @@
 {
+  "name": "titan-digits",
+  "version": "7.1",
   "dependencies": {
-    "ws": "^8.17.0"
+    "ws": "8.17.0"
   }
 }
