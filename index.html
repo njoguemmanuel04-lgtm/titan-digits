@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TITAN V8 - FINAL</title>
+<title>TITAN V8.3 DIRECT</title>
 <style>
 body{background:#000;color:#0f0;font-family:monospace;padding:10px}
 #price{font-size:22px}#digit{font-size:70px;text-align:center;margin:10px}
@@ -13,97 +13,52 @@ body{background:#000;color:#0f0;font-family:monospace;padding:10px}
 button{padding:12px 20px;font-weight:bold;border:none;border-radius:8px;cursor:pointer}
 .btn-connect{background:#ff444f;color:#fff;width:100%;font-size:18px}
 .btn-trade{background:#0f0;color:#000;margin:5px}
-#log{height:100px;overflow:auto;border:1px solid #0f0;padding:5px;margin-top:10px;font-size:11px}
+#log{height:120px;overflow:auto;border:1px solid #0f0;padding:5px;margin-top:10px;font-size:11px}
 #balanceBox{font-size:18px;background:#111;padding:10px;border-radius:8px;margin:10px 0;text-align:center}
 </style>
 </head>
 <body>
-
-<h2 style="text-align:center">🔥 TITAN V8 - OAUTH READY</h2>
-
-<div id="balanceBox">
-Account: <span id="loginId">Not connected</span><br>
-Balance: <span id="balance">----</span> | Status: <span id="status">INIT</span>
-</div>
-
+<h2 style="text-align:center">🔥 TITAN V8.3 DIRECT - NO SERVER</h2>
+<div id="balanceBox">Account: <span id="loginId">Not connected</span><br>Balance: <span id="balance">----</span> | <span id="status">INIT</span></div>
 <button id="connectBtn" class="btn-connect" onclick="loginDeriv()">CONNECT DERIV ACCOUNT</button>
-<div style="text-align:center;margin-top:10px">
-<button class="btn-trade" onclick="location.reload()">RECONNECT TICKS</button>
-<button class="btn-trade" onclick="localStorage.clear();location.reload()">LOGOUT</button>
-</div>
-
+<div style="text-align:center;margin-top:10px"><button class="btn-trade" onclick="connectDirect()">RECONNECT TICKS</button><button class="btn-trade" onclick="localStorage.clear();location.reload()">LOGOUT</button></div>
 <div id="price">Price: ----</div>
 <div id="digit">-</div>
 <div id="hist"></div>
 <div id="stats" style="text-align:center;margin:10px">Last: - | Hist: 0</div>
 <div id="log"></div>
-
 <script>
 const APP_ID = '34xM40w3JyILr0iqbYGhh';
-let history=[], last=null;
+let history=[], last=null, ws=null;
 const priceEl=document.getElementById('price'), digitEl=document.getElementById('digit'), histEl=document.getElementById('hist'), statsEl=document.getElementById('stats'), logEl=document.getElementById('log'), loginEl=document.getElementById('loginId'), balEl=document.getElementById('balance'), statusEl=document.getElementById('status'), connectBtn=document.getElementById('connectBtn');
-
 function log(m){ logEl.innerHTML = new Date().toLocaleTimeString()+' '+m+'<br>'+logEl.innerHTML; }
-function loginDeriv(){
-  window.location.href = `https://oauth.deriv.com/oauth2/authorize?app_id=${APP_ID}`;
-}
+function loginDeriv(){ window.location.href = `https://oauth.deriv.com/oauth2/authorize?app_id=${APP_ID}`; }
+let token=localStorage.getItem('deriv_token'), loginid=localStorage.getItem('deriv_loginid');
+if(token){ loginEl.innerText=loginid; connectBtn.innerText='CONNECTED: '+loginid; connectBtn.style.background='#0f0'; connectBtn.style.color='#000'; }
+function updateUI(q,d){ priceEl.innerText='Price: '+q; digitEl.innerText=d; statsEl.innerText=`Last: ${d} | Hist: ${history.length}`; histEl.innerHTML=''; history.slice(-20).forEach(x=>{ let div=document.createElement('div'); div.className='dot'+(x==d?' active':''); div.innerText=x; histEl.appendChild(div); }); }
 
-let token = localStorage.getItem('deriv_token');
-let loginid = localStorage.getItem('deriv_loginid');
-if(token){
-  loginEl.innerText = loginid;
-  connectBtn.innerText = 'CONNECTED: '+loginid;
-  connectBtn.style.background='#0f0'; connectBtn.style.color='#000';
-  statusEl.innerText='AUTH OK';
-  log('Auth token found for '+loginid);
-} else {
-  log('No token - click CONNECT DERIV');
+function connectDirect(){
+  if(ws) try{ws.close()}catch{}
+  // Try 3 hosts - frontend one bypasses 520
+  const hosts = [
+    `wss://ws.binaryws.com/websockets/v3?app_id=${APP_ID}`,
+    `wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`,
+    `wss://frontend.derivws.com/websockets/v3?app_id=${APP_ID}`
+  ];
+  let idx=0;
+  function tryHost(){
+    if(idx>=hosts.length){ log('ALL HOSTS FAILED - TURN ON VPN'); return; }
+    const url=hosts[idx++]; log('Trying: '+url.split('/')[2]);
+    ws=new WebSocket(url);
+    ws.onopen=()=>{ log('CONNECTED TO '+url.split('/')[2]); statusEl.innerText='LIVE DIRECT'; if(token) ws.send(JSON.stringify({authorize:token})); ws.send(JSON.stringify({ticks:'R_100', subscribe:1})); };
+    ws.onmessage=e=>{ try{ const d=JSON.parse(e.data); if(d.msg_type==='authorize'){ log('Authorized!'); ws.send(JSON.stringify({balance:1, subscribe:1})); } if(d.msg_type==='balance'){ balEl.innerText=d.balance.balance+' '+d.balance.currency; } if(d.tick){ const q=d.tick.quote; const digit=String(q).slice(-1); if(digit!==last){ history.push(digit); if(history.length>50) history.shift(); last=digit; updateUI(q,digit); } } }catch{} };
+    ws.onerror=()=>{ log('Error on host, trying next...'); ws.close(); };
+    ws.onclose=()=>{ if(history.length<2) setTimeout(tryHost,1000); else { log('Tick closed, reconnecting...'); setTimeout(connectDirect,2000); } };
+  }
+  tryHost();
 }
-
-function updateUI(q,d){
-  priceEl.innerText='Price: '+q; digitEl.innerText=d;
-  statsEl.innerText=`Last: ${d} | Hist: ${history.length}`;
-  histEl.innerHTML=''; history.slice(-20).forEach(x=>{
-    let div=document.createElement('div'); div.className='dot'+(x==d?' active':''); div.innerText=x; histEl.appendChild(div);
-  });
-}
-
-function connectTicks(){
-  log('Connecting via /api/tick (NO VPN NEEDED)');
-  const es = new EventSource('/api/tick');
-  es.onopen=()=>{ log('SERVER CONNECTED'); statusEl.innerText='LIVE'; };
-  es.onmessage=e=>{
-    try{
-      const m=JSON.parse(e.data);
-      if(m.log) log('SERVER: '+m.log);
-      if(m.error) log('ERR: '+JSON.stringify(m));
-      if(m.tick){
-        const q=m.tick.quote; const digit=String(q).slice(-1);
-        if(digit!==last){ history.push(digit); if(history.length>50) history.shift(); last=digit; updateUI(q,digit); }
-        // If authenticated, also fetch balance via WS auth
-        if(token && !window.balFetched){
-          fetchBalance();
-        }
-      }
-    }catch{}
-  };
-  es.onerror=()=>{ log('Tick error, reconnecting...'); es.close(); setTimeout(connectTicks,2000); };
-}
-
-async function fetchBalance(){
-  window.balFetched=true;
-  log('Fetching balance for '+loginid);
-  // Use Deriv WS with token
-  const ws = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id='+APP_ID);
-  ws.onopen=()=>{ ws.send(JSON.stringify({authorize: token})); };
-  ws.onmessage=e=>{
-    const d=JSON.parse(e.data);
-    if(d.msg_type==='authorize'){ log('Authorized!'); ws.send(JSON.stringify({balance:1, subscribe:1})); }
-    if(d.msg_type==='balance'){ balEl.innerText = d.balance.balance+' '+d.balance.currency; log('Balance: '+d.balance.balance); }
-  };
-}
-
-connectTicks();
+log('Direct mode - no /api/tick, bypasses 520');
+connectDirect();
 </script>
 </body>
 </html>
