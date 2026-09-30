@@ -1,18 +1,44 @@
-<!DOCTYPE html>
-<html><body style="background:#0a0a0f;color:#fff;text-align:center;padding:50px;font-family:Arial">
-<h2>Connecting...</h2>
+<!DOCTYPE html><html><body style="background:#000;color:#0f0;font-family:monospace;padding:20px">
+<h2>Connecting to Deriv...</h2><div id="log"></div>
 <script>
-const params=new URLSearchParams(window.location.search);
-const urlParams=new URLSearchParams(window.location.hash.substring(1));
-let token=params.get('token1')||params.get('token')||urlParams.get('token1')||urlParams.get('token')||params.get('acct1');
-if(token){
-localStorage.setItem('deriv_token',token);
-document.body.innerHTML='<h2 style="color:#00ff88">✅ CONNECTED! Redirecting...</h2>';
-}else{
-let all=window.location.href;
-let m=all.match(/token1=([^&]+)/);
-if(m){localStorage.setItem('deriv_token',m[1]);}
+const logEl=document.getElementById('log');
+function log(m){logEl.innerHTML+=m+'<br>'}
+log('Reading Deriv response...');
+
+// Deriv OAuth returns token in URL hash or query
+const url = new URL(window.location.href);
+let params = new URLSearchParams(url.search);
+let hashParams = new URLSearchParams(url.hash.substring(1));
+
+let token = hashParams.get('token1') || hashParams.get('token') || params.get('token1') || params.get('code') || null;
+let accounts = [];
+
+ // Deriv sends acct1, token1, cur1 etc
+for(let i=1;i<=10;i++){
+  let t = hashParams.get('token'+i) || params.get('token'+i) || url.searchParams.get('token'+i);
+  let a = hashParams.get('acct'+i) || params.get('acct'+i) || url.searchParams.get('acct'+i);
+  if(t && a) accounts.push({token:t, account:a});
 }
-setTimeout(()=>{window.location.href='https://titan-digits.vercel.app/'},1500);
-</script>
-</body></html>
+
+if(accounts.length>0){
+  localStorage.setItem('deriv_accounts', JSON.stringify(accounts));
+  localStorage.setItem('deriv_token', accounts[0].token);
+  localStorage.setItem('deriv_loginid', accounts[0].account);
+  log('✅ FOUND: '+accounts[0].account);
+  log('Redirecting to Titan V7...');
+  setTimeout(()=>{ window.location.href='/'; }, 1500);
+} else {
+  // Check for OAuth code flow
+  let code = params.get('code');
+  if(code){
+    log('OAuth Code found, exchanging...');
+    fetch('/api/exchange?code='+code).then(r=>r.json()).then(d=>{
+      if(d.token){ localStorage.setItem('deriv_token', d.token); window.location.href='/'; }
+      else log('Exchange failed: '+JSON.stringify(d));
+    });
+  } else {
+    log('❌ No token found. URL was: '+window.location.href);
+    log('<br><a href="/" style="color:#0f0">Go back to Titan</a>');
+  }
+}
+</script></body></html>
