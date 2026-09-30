@@ -1,30 +1,30 @@
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TITAN V8.6 PAT SECURE</title>
+<title>TITAN V8.7 FIXED</title>
 <style>
 body{background:#000;color:#0f0;font-family:monospace;padding:10px}
 #price{font-size:22px}#digit{font-size:70px;text-align:center;margin:10px}
 #hist{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}
 .dot{width:32px;height:32px;border-radius:50%;background:#111;border:1px solid #333;display:flex;align-items:center;justify-content:center;font-weight:bold}
 .dot.active{background:#0f0;color:#000}
-.wrap{position:relative;width:100%}
-input{width:100%;padding:12px 45px 12px 12px;background:#111;color:#0f0;border:1px solid #0f0;border-radius:8px;margin:5px 0;box-sizing:border-box;letter-spacing:2px}
-.eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;background:none;border:none;font-size:20px}
-button{padding:12px 20px;font-weight:bold;border:none;border-radius:8px;cursor:pointer;width:100%;margin:5px 0}
+.row{display:flex;gap:8px;align-items:center}
+.row input{flex:1;padding:14px;background:#111;color:#0f0;border:1px solid #0f0;border-radius:8px;font-size:14px;letter-spacing:1px}
+.eyeBtn{width:55px;height:50px;background:#111;border:1px solid #0f0;border-radius:8px;color:#0f0;font-size:20px;cursor:pointer}
+button{padding:14px 20px;font-weight:bold;border:none;border-radius:8px;cursor:pointer;width:100%;margin:6px 0}
 .btn{background:#0f0;color:#000;font-size:18px}.btn2{background:#333;color:#fff}
 #log{height:120px;overflow:auto;border:1px solid #0f0;padding:5px;margin-top:10px;font-size:11px}
 #balanceBox{font-size:16px;background:#111;padding:10px;border-radius:8px;margin:10px 0;text-align:center}
-.small{font-size:11px;color:#888;text-align:center}
+.small{font-size:11px;color:#888;text-align:center;margin-bottom:8px}
 </style>
 </head><body>
-<h2 style="text-align:center">🔥 TITAN V8.6 SECURE</h2>
+<h2 style="text-align:center">🔥 TITAN V8.7 PASTE FIX</h2>
 <div id="balanceBox">Account: <span id="loginId">Not connected</span><br>Balance: <span id="balance">----</span> | <span id="status">INIT</span></div>
 
-<div class="wrap">
-<input id="patInput" type="password" placeholder="•••••••••••••••• Paste Deriv API Token">
-<button class="eye" onclick="toggleEye()">👁️</button>
+<div class="row">
+<input id="patInput" type="password" placeholder="Paste Deriv API Token here" autocomplete="off" autocorrect="off" spellcheck="false">
+<button class="eyeBtn" onclick="toggleEye()">👁️</button>
 </div>
-<div class="small">Token is stored locally only, never shared. Type=password hidden.</div>
+<div class="small">Token hidden as •••• | Long-press input to PASTE | Stored locally only</div>
 
 <button class="btn" onclick="connectWithPAT()">CONNECT WITH PAT</button>
 <button class="btn2" onclick="localStorage.clear();location.reload()">LOGOUT / CLEAR TOKEN</button>
@@ -37,30 +37,27 @@ button{padding:12px 20px;font-weight:bold;border:none;border-radius:8px;cursor:p
 const APP_ID='1089';let history=[],last=null,ws=null;
 const priceEl=document.getElementById('price'),digitEl=document.getElementById('digit'),histEl=document.getElementById('hist'),statsEl=document.getElementById('stats'),logEl=document.getElementById('log'),loginEl=document.getElementById('loginId'),balEl=document.getElementById('balance'),statusEl=document.getElementById('status');
 function log(m){logEl.innerHTML=new Date().toLocaleTimeString()+' '+m+'<br>'+logEl.innerHTML}
-function toggleEye(){const i=document.getElementById('patInput'); i.type = i.type==='password'? 'text' : 'password';}
+function toggleEye(){const i=document.getElementById('patInput'); i.type = i.type==='password'? 'text':'password';}
 let saved=localStorage.getItem('deriv_pat');
-if(saved){document.getElementById('patInput').value=saved; log('🔒 Saved token found: ****'+saved.slice(-4));}
+if(saved){document.getElementById('patInput').value=saved; log('🔒 Saved: ****'+saved.slice(-4));}
 function updateUI(q,d){priceEl.innerText='Price: '+q;digitEl.innerText=d;statsEl.innerText=`Last: ${d} | Hist: ${history.length}`;histEl.innerHTML='';history.slice(-20).forEach(x=>{let div=document.createElement('div');div.className='dot'+(x==d?' active':'');div.innerText=x;histEl.appendChild(div)})}
 function connectWithPAT(){
-  let pat=document.getElementById('patInput').value.trim(); if(!pat){alert('Paste token first');return}
-  localStorage.setItem('deriv_pat',pat);
-  log('🔒 PAT hidden: ****'+pat.slice(-4)+' connecting...');
+  let pat=document.getElementById('patInput').value.trim(); if(!pat){alert('Long-press input and PASTE your token');return}
+  localStorage.setItem('deriv_pat',pat); log('🔒 PAT ****'+pat.slice(-4)+' connecting...');
   const hosts=[`wss://ws.binaryws.com/websockets/v3?app_id=${APP_ID}`,`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`,`wss://ws.deriv.com/websockets/v3?app_id=${APP_ID}`];
   let idx=0; function tryHost(){
-    if(idx>=hosts.length){log('ALL FAILED - Try Netherlands VPN with KB/s speed');statusEl.innerText='BLOCKED - CHANGE VPN';return}
+    if(idx>=hosts.length){log('ALL FAILED - try better VPN server');statusEl.innerText='BLOCKED';return}
     const url=hosts[idx++]; log('Trying: '+url.split('/')[2]);
     try{
       ws=new WebSocket(url);
       ws.onopen=()=>{log('✅ CONNECTED: '+url.split('/')[2]);statusEl.innerText='LIVE '+url.split('/')[2];ws.send(JSON.stringify({authorize:pat}))};
-      ws.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.error){log('❌ '+d.error.message); return}
-        if(d.msg_type==='authorize'){log('✅ Authorized! '+d.authorize.loginid);loginEl.innerText=d.authorize.loginid;ws.send(JSON.stringify({balance:1,subscribe:1}));ws.send(JSON.stringify({ticks:'R_100',subscribe:1}))}
+      ws.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.error){log('❌ '+d.error.message);return}
+        if(d.msg_type==='authorize'){log('✅ '+d.authorize.loginid);loginEl.innerText=d.authorize.loginid;ws.send(JSON.stringify({balance:1,subscribe:1}));ws.send(JSON.stringify({ticks:'R_100',subscribe:1}))}
         if(d.msg_type==='balance'){balEl.innerText=d.balance.balance+' '+d.balance.currency}
         if(d.tick){const q=d.tick.quote;const digit=String(q).split('.').pop().slice(-1);if(/^[0-9]$/.test(digit)&&digit!==last){history.push(digit);if(history.length>100)history.shift();last=digit;updateUI(q,digit)}}
-      }catch(err){log('Parse '+err)}};
-      ws.onerror=()=>{log('❌ Error '+url.split('/')[2]);try{ws.close()}catch{};setTimeout(tryHost,1000)};
-      ws.onclose=()=>{if(history.length<2)setTimeout(tryHost,1000)};
-    }catch(err){log('Exception '+err);tryHost()}
+      }catch{}}; ws.onerror=()=>{log('❌ Error '+url.split('/')[2]);try{ws.close()}catch{};setTimeout(tryHost,1000)}; ws.onclose=()=>{if(history.length<2)setTimeout(tryHost,1000)};
+    }catch(err){log('Ex '+err);tryHost()}
   } tryHost();
 }
-if(saved) connectWithPAT(); else log('V8.6 SECURE ready - token hidden as ••••');
+if(saved) connectWithPAT(); else log('V8.7 ready - LONG PRESS input to paste');
 </script></body></html>
