@@ -1,41 +1,18 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TITAN V2.8 HTTP FIX</title><style>body{background:#0a0a0f;color:#fff;font-family:Arial;padding:10px}.header{background:linear-gradient(90deg,#00ff88,#00ccff);padding:12px;border-radius:10px;text-align:center}.last{font-size:55px;color:#00ff88;font-weight:bold}.btn{width:100%;padding:12px;border:none;border-radius:6px;font-weight:bold;margin-top:6px}.log{font-size:10px;color:#0f0;background:#000;padding:6px;height:150px;overflow:auto}</style></head><body>
-<div class="header"><h2>TITAN V2.8 HTTP REAL</h2><div id="status">READY</div></div>
-<div style="background:#1a1a2e;padding:10px;margin:8px 0;border-radius:8px">Bal: <b id="bal">$0.00</b> <span id="email"></span></div>
-<div style="background:#1a1a2e;border:2px solid #00ff88;padding:15px;border-radius:12px;text-align:center">LAST: <span id="last" class="last">-</span><div id="price" style="color:#888"></div><div id="mode" style="font-size:10px;color:#00ff88;margin-top:5px"></div></div>
-<div id="digits" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0"></div>
-<select id="market" style="width:100%;padding:10px;background:#000;color:#fff"><option value="R_100">Vol 100</option><option value="R_50">Vol 50</option><option value="R_25">Vol 25</option><option value="R_10">Vol 10</option></select>
-<input id="tokenInput" style="width:100%;padding:10px;margin-top:8px;background:#000;color:#0f0;border:1px solid #0f0" placeholder="pat_ token">
-<button class="btn" style="background:#ff0040;color:#fff" onclick="location.href='https://oauth.deriv.com/oauth2/authorize?app_id=34xnDtEmqLPic3a8oz5zu&l=en&redirect_uri=https://titan-digits.vercel.app/callback.html'">OAUTH LOGIN</button>
-<button class="btn" style="background:#00ff88;color:#000" onclick="manualLogin()">LOGIN TOKEN</button>
-<div id="log" class="log"></div>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TITAN V2.9 PROXY</title><style>body{background:#0a0a0f;color:#fff;font-family:Arial;padding:10px}.h{background:linear-gradient(90deg,#00ff88,#00ccff);padding:12px;border-radius:10px;text-align:center}.l{font-size:55px;color:#00ff88;font-weight:bold}.b{width:100%;padding:12px;border:none;border-radius:6px;font-weight:bold;margin-top:6px}.lg{font-size:10px;color:#0f0;background:#000;padding:6px;height:150px;overflow:auto}</style></head><body>
+<div class="h"><h2>TITAN V2.9 PROXY FIX</h2><div id="s">READY</div></div>
+<div style="background:#1a1a2e;padding:10px;margin:8px 0;border-radius:8px">Bal: <b id="bal">$0.00</b></div>
+<div style="background:#1a1a2e;border:2px solid #00ff88;padding:15px;border-radius:12px;text-align:center">LAST: <span id="last" class="l">-</span><div id="pr" style="color:#888"></div><div id="md" style="font-size:10px;color:#0f0"></div></div>
+<div id="dg" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0"></div>
+<select id="mk" style="width:100%;padding:10px;background:#000;color:#fff"><option value="R_100">Vol 100</option><option value="R_50">Vol 50</option><option value="R_25">Vol 25</option></select>
+<input id="tk" style="width:100%;padding:10px;margin-top:8px;background:#000;color:#0f0;border:1px solid #0f0" placeholder="pat_ token">
+<button class="b" style="background:#00ff88;color:#000" onclick="localStorage.setItem('deriv_token',document.getElementById('tk').value);location.reload()">SAVE TOKEN</button>
+<div id="lg" class="lg"></div>
 <script>
-const WS_URLS=['wss://gateway.deriv.com/websockets/v3?app_id=1089','wss://ws.derivws.com/websockets/v3?app_id=1089'];
-const HTTP_URL='https://ws.derivws.com/websockets/v3?app_id=1089';
-let counts=Array(10).fill(0),total=0,token=localStorage.getItem('deriv_token')||'',ws,idx=0,fail=0,httpTimer=null,useHTTP=false,lastPrice='';
-document.getElementById('tokenInput').value=token;
-function log(m){let el=document.getElementById('log');el.innerHTML='> '+new Date().toLocaleTimeString()+' '+m+'<br>'+el.innerHTML;}
-function init(){let h='';for(let i=0;i<10;i++)h+=`<div style="background:#1a1a2e;padding:10px;border-radius:8px;text-align:center"><b>${i}</b><div id="p${i}">0% (0)</div></div>`;document.getElementById('digits').innerHTML=h;}init();
-function upd(last,price){if(price==lastPrice) return; lastPrice=price; document.getElementById('last').innerText=last; document.getElementById('price').innerText=price; counts[last]++; total++; for(let i=0;i<10;i++){let pct=total?((counts[i]/total)*100).toFixed(0):0; document.getElementById('p'+i).innerText=pct+'% ('+counts[i]+')';}}
-async function doHTTP(){
-try{
-let r=await fetch(HTTP_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticks:document.getElementById('market').value})});
-let d=await r.json(); if(d.tick){let p=d.tick.quote.toString(); upd(parseInt(p.slice(-1)),p); document.getElementById('mode').innerText='HTTP POLLING ✅ - Works without WS!';}
-if(token){let ra=await fetch(HTTP_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({authorize:token})}); let da=await ra.json(); if(da.authorize){document.getElementById('bal').innerText='$'+da.authorize.balance.toFixed(2); document.getElementById('email').innerText=da.authorize.email;}}
-}catch(e){log('HTTP err '+e.message);}
-}
-function startHTTP(){if(useHTTP) return; useHTTP=true; document.getElementById('status').innerHTML='● <span style="color:#00ff88">HTTP MODE ✅ ACTIVE</span>'; log('SWITCHED TO HTTP MODE - THIS WILL WORK!'); if(httpTimer) clearInterval(httpTimer); httpTimer=setInterval(doHTTP,1000); doHTTP();}
-function connectWS(){
-if(useHTTP) return;
-let url=WS_URLS[idx]; log('Trying WS '+(idx+1)+'/2 '+url.split('/')[2]); document.getElementById('status').innerText='CONNECTING WS '+(idx+1)+'/2';
-try{
-ws=new WebSocket(url);
-ws.onopen=()=>{log('WS OPENED ✅ Server '+(idx+1)); document.getElementById('status').innerHTML='● <span style="color:#0f0">WS CONNECTED ✅ Server '+(idx+1)+'</span>'; fail=0; ws.send(JSON.stringify({ticks:document.getElementById('market').value})); if(token) ws.send(JSON.stringify({authorize:token}));};
-ws.onmessage=(e)=>{let d=JSON.parse(e.data); if(d.tick){let p=d.tick.quote.toString(); upd(parseInt(p.slice(-1)),p); document.getElementById('mode').innerText='WS MODE ✅ LIVE';} if(d.authorize){document.getElementById('bal').innerText='$'+d.authorize.balance.toFixed(2);}};
-ws.onerror=()=>{log('WS Error '+(idx+1)); ws.close();};
-ws.onclose=()=>{fail++; log('Closed fail='+fail); idx=(idx+1)%WS_URLS.length; if(fail>=3){log('WS BLOCKED - STARTING HTTP NOW!'); startHTTP();} else setTimeout(connectWS,700);};
-}catch(e){fail++; if(fail>=3) startHTTP(); else setTimeout(connectWS,700);}
-}
-function manualLogin(){let t=document.getElementById('tokenInput').value.trim(); localStorage.setItem('deriv_token',t); token=t; log('Token saved'); if(useHTTP) doHTTP();}
-connectWS();
-setTimeout(()=>{if(!useHTTP && total==0){log('WS still 0 after 5s -> Force HTTP'); startHTTP();}},5000);
+let c=Array(10).fill(0),t=0,tk=localStorage.getItem('deriv_token')||'',lp='';
+document.getElementById('tk').value=tk;
+let d='';for(let k=0;k<10;k++)d+=`<div style="background:#1a1a2e;padding:10px;border-radius:8px;text-align:center"><b>${k}</b><div id="p${k}">0%</div></div>`;document.getElementById('dg').innerHTML=d;
+function L(m){document.getElementById('lg').innerHTML='> '+m+'<br>'+document.getElementById('lg').innerHTML}
+function U(last,price){if(price==lp) return; lp=price; document.getElementById('last').innerText=last; document.getElementById('pr').innerText=price; c[last]++; t++; for(let k=0;k<10;k++){let p=t?((c[k]/t)*100).toFixed(0):0; document.getElementById('p'+k).innerText=p+'% ('+c[k]+')';}}
+async function H(){try{let r=await fetch('/api/tick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticks:document.getElementById('mk').value})}); let j=await r.json(); if(j.tick){let p=j.tick.quote+''; U(parseInt(p.slice(-1)),p); document.getElementById('md').innerText='PROXY HTTP ✅ LIVE'; document.getElementById('s').innerHTML='● PROXY MODE ✅ ACTIVE'; L('TICK '+p+' LAST='+p.slice(-1));} if(tk){let ra=await fetch('/api/tick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({authorize:tk})}); let ja=await ra.json(); if(ja.authorize){document.getElementById('bal').innerText='$'+ja.authorize.balance.toFixed(2); L('BAL OK $'+ja.authorize.balance);}}}catch(e){L('ERR '+e.message)}}
+L('Starting PROXY mode...'); document.getElementById('s').innerHTML='● PROXY MODE ✅ ACTIVE'; setInterval(H,1000); H();
 </script></body></html>
