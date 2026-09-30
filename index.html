@@ -1,15 +1,30 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TITAN V4 REAL</title><style>body{background:#0a0e14;color:#fff;font-family:monospace;text-align:center;margin:0;padding:10px}h1{font-size:16px}#big{font-size:90px;color:#00ff88;font-weight:bold}#info{color:#00ff88;margin:8px 0;font-size:13px}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:10px 0}.box{background:#1a2332;padding:8px 2px;border-radius:8px;border:2px solid transparent}.box.pred{border-color:#00ff88;box-shadow:0 0 10px #00ff88}.box b{font-size:20px;display:block}.box span{font-size:11px;color:#8aa}.row{display:flex;justify-content:center;gap:10px;margin:8px 0;font-size:13px}input{width:90%;padding:12px;background:#111827;color:#fff;border:1px solid #333;border-radius:8px;text-align:center}button{width:92%;padding:14px;background:#00ff88;color:#000;font-weight:bold;border:none;border-radius:10px;margin:8px 0;font-size:16px}#log{background:#000;text-align:left;height:170px;overflow:auto;padding:8px;font-size:11px;color:#0f0;border-radius:8px}</style></head><body>
-<h1>TITAN DIGITS - V4 DIFF FIX</h1><div id="big">-</div><div id="info">Connecting REAL...</div><div class="grid" id="grid"></div><div class="row"><span id="hist">History:0</span> | <span id="pred">PREDICT:-</span> | <span id="conf">CONF:0%</span></div><input id="tok" type="password" placeholder="Paste Deriv Token"><div><button onclick="toggle()">👁 Show / Hide Token</button></div><input id="stake" type="number" value="1"><button id="btn" onclick="saveTok()">SAVE TOKEN & START TRADING</button><div style="font-size:11px;color:#888">Token stored only in YOUR phone</div><div id="log"></div>
+<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>TITAN V5 DIRECT</title><style>body{background:#0a0a0a;color:#0f0;font-family:monospace;padding:10px}button{padding:12px;background:#0f0;border:0;font-weight:bold;width:100%;margin:5px 0}#log{height:300px;overflow:auto;background:#111;padding:8px;border:1px solid #333;font-size:12px}</style></head><body>
+<h3>TITAN V5 DIRECT - WARP ONLY</h3>
+<input id="token" placeholder="paste Deriv token" style="width:100%;padding:10px"><button onclick="save()">SAVE TOKEN</button>
+<div>Price: <span id="price">-</span> | Last: <span id="last">-</span> | Hist: <span id="hist">0</span> | <span id="status">CONNECTING...</span></div>
+<button onclick="toggle()">START/STOP</button>
+<div id="log"></div>
 <script>
-let history=[],token=localStorage.getItem('deriv_token')||'',trading=false,lastQ=0,counts=Array(10).fill(0),ws=null,tryIdx=0;
-let urls=['wss://ws.derivws.com/websockets/v3?app_id=1089','wss://ws.binaryws.com/websockets/v3?app_id=1089','wss://ws.deriv.com/websockets/v3?app_id=1089'];
-document.getElementById('tok').value=token;
-function toggle(){let e=document.getElementById('tok');e.type=e.type==='password'?'text':'password'}
-function log(m){let l=document.getElementById('log');l.innerHTML='> '+m+'<br>'+l.innerHTML}
-function saveTok(){token=document.getElementById('tok').value.trim();if(!token)return alert('Paste token');localStorage.setItem('deriv_token',token);trading=true;document.getElementById('btn').innerText='TRADING ACTIVE ✓';log('TOKEN SAVED TRADING ON')}
-function updateGrid(p){let g=document.getElementById('grid');g.innerHTML='';let total=history.length||1;for(let i=0;i<10;i++){let pct=Math.round((counts[i]/total)*100);let cls='box'+(p===i?' pred':'');g.innerHTML+=`<div class="${cls}"><b>${i}</b><span>${pct}%</span></div>`}}
-function handleTick(q,source){let s=q.toString();let lastDigit=parseInt(s.slice(-1));if(isNaN(lastDigit)){s=q.toFixed(2);lastDigit=parseInt(s.slice(-1));}document.getElementById('big').innerText=lastDigit;document.getElementById('info').innerText=`TICK ${q} LAST:${lastDigit} via ${source}`;if(lastQ!==q){history.push(lastDigit);if(history.length>100)history.shift();counts=Array(10).fill(0);history.forEach(d=>counts[d]++);lastQ=q;}let total=history.length;document.getElementById('hist').innerText='History:'+total;if(total>=5){let minIdx=0,minVal=counts[0];for(let i=1;i<10;i++)if(counts[i]<minVal){minVal=counts[i];minIdx=i;}let conf=Math.round(((total-minVal)/total)*60+20);if(conf>85)conf=85;document.getElementById('pred').innerText='PREDICT:'+minIdx;document.getElementById('conf').innerText='CONF:'+conf+'%';updateGrid(minIdx);log(`TICK ${q} LAST:${lastDigit} | PRED:${minIdx} ${conf}% via ${source}`);if(trading&&conf>=60&&total>10){trading=false;log(`BUYING DIFF ${minIdx} $${document.getElementById('stake').value}`);fetch('/api/trade',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,buy_params:{amount:parseFloat(document.getElementById('stake').value)||1,basis:'stake',contract_type:'DIGITDIFF',currency:'USD',duration:1,duration_unit:'t',symbol:'R_100',barrier:minIdx.toString()}})}).then(r=>r.json()).then(j=>{log('TRADE RESULT: '+JSON.stringify(j).slice(0,200));if(j.error)log('ERROR: '+JSON.stringify(j.error).slice(0,200));}).catch(e=>log('TRADE ERR:'+e.message)).finally(()=>setTimeout(()=>trading=true,6000));}}else{document.getElementById('pred').innerText='PREDICT:-';document.getElementById('conf').innerText='CONF:'+Math.round((total/15)*50)+'%';updateGrid(-1);log(`TICK ${q} LAST:${lastDigit} collecting via ${source}`);}}
-function connectReal(){let url=urls[tryIdx%urls.length];tryIdx++;log('TRYING '+url);try{ws=new WebSocket(url);ws.onopen=()=>{log('REAL CONNECTED '+url);ws.send(JSON.stringify({ticks:'R_100'}));};ws.onmessage=(e)=>{try{let m=JSON.parse(e.data);if(m.tick){handleTick(m.tick.quote,'REAL');}}catch{}};ws.onerror=()=>{log('WS ERROR '+url);ws.close();};ws.onclose=()=>{log('WS CLOSED '+url+' retry...');setTimeout(connectReal,1500);};}catch(e){log('WS FAIL '+e.message);setTimeout(connectReal,1500);}}
-async function fallbackPoll(){try{let r=await fetch('/api/tick?t='+Date.now());let j=await r.json();if(j.quote)handleTick(parseFloat(j.quote),'fallback');}catch(e){}setTimeout(fallbackPoll,1500);}
-connectReal();setTimeout(()=>{if(history.length<3)fallbackPoll();},4000);updateGrid(-1);log('V4 DIFF FIX LOADED');
+let ws=null,token=localStorage.getItem('deriv_token')||'',history=[],active=false,lastDigit=-1,endpointIndex=0;
+const ENDPOINTS=['wss://ws.derivws.com/websockets/v3?app_id=1089','wss://ws.binaryws.com/websockets/v3?app_id=1089','wss://ws.deriv.com/websockets/v3?app_id=1089'];
+const $=id=>document.getElementById(id);
+if(token)$('token').value=token;
+function log(m){const d=$('log');d.innerHTML+='<div>> '+m+'</div>';d.scrollTop=d.scrollHeight;console.log(m);}
+function connect(){
+ const url=ENDPOINTS[endpointIndex%ENDPOINTS.length];
+ log('TRYING '+url+' ...');$('status').textContent='TRYING...';
+ ws=new WebSocket(url);
+ ws.onopen=()=>{log('REAL CONNECTED '+url);$('status').textContent='REAL CONNECTED';ws.send(JSON.stringify({ticks:'R_100'}));if(token)ws.send(JSON.stringify({authorize:token}));};
+ ws.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.tick){const q=parseFloat(m.tick.quote);const digit=Math.floor(q*100)%10;if(digit!==lastDigit){history.push(digit);if(history.length>20)history.shift();$('hist').textContent=history.length;$('last').textContent=digit;$('price').textContent=q.toFixed(2);lastDigit=digit;log('TICK '+q.toFixed(2)+' LAST:'+digit+' via REAL');if(active&&history.length>=11)checkSignal(digit,q);}}if(m.authorize){log('AUTH OK balance:'+m.authorize.balance);}if(m.buy){log('TRADE RESULT: '+JSON.stringify(m.buy).slice(0,120));}if(m.error){log('ERROR: '+JSON.stringify(m.error));}}catch(err){}};
+ ws.onerror=()=>{log('WS ERROR '+url);};
+ ws.onclose=()=>{log('WS CLOSED, retry...');$('status').textContent='RETRYING';endpointIndex++;setTimeout(connect,2000);};
+}
+function checkSignal(d,q){
+ // Simple diff logic: most frequent digit in last 11
+ const freq={};history.forEach(x=>freq[x]=(freq[x]||0)+1);let maxD=0,maxC=-1;for(let k in freq){if(freq[k]>maxC){maxC=freq[k];maxD=parseInt(k);}}
+ if(maxC>=6){const stake=1;log('BUYING DIFF '+maxD+' $'+stake);ws.send(JSON.stringify({buy:1,price:stake,parameters:{amount:stake,basis:'stake',contract_type:'DIGITDIFF',symbol:'R_100',duration:1,duration_unit:'t',barrier:maxD.toString()}}));}
+}
+function save(){token=$('token').value.trim();localStorage.setItem('deriv_token',token);log('TOKEN SAVED');if(ws&&ws.readyState===1)ws.send(JSON.stringify({authorize:token}));}
+function toggle(){active=!active;log(active?'TRADING ACTIVE':'STOPPED');}
+connect();
 </script></body></html>
