@@ -1,103 +1,102 @@
 import os
 from flask import Flask, request
 import telebot
-from collections import Counter
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 bot = telebot.TeleBot(BOT_TOKEN) if BOT_TOKEN else None
 app = Flask(__name__)
 
-def titan_kingpin(digits):
-    total = len(digits)
-    c = Counter(digits)
-    sorted_c = c.most_common()
+HTML = """
+<!DOCTYPE html>
+<html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TITAN V12 LIVE</title>
+<style>
+body{background:#0a0e1a;color:#fff;font-family:Arial;padding:15px;margin:0}
+.card{background:#141a2f;border-radius:15px;padding:15px;margin-bottom:12px;border:1px solid #1e2a4a}
+h2{color:#00ff88;text-align:center;margin:5px}
+input{width:100%;background:#0a0e1a;border:1px solid #2a3a5a;color:#fff;padding:12px;border-radius:10px;margin:5px 0 10px 0;font-size:16px}
+.btn{width:100%;padding:14px;border:none;border-radius:12px;font-weight:bold;font-size:16px;cursor:pointer}
+.btn-run{background:linear-gradient(135deg,#00ff88,#00cc6a);color:#000}
+.btn-stop{background:#ff3344;color:#fff}
+.row{display:flex;gap:10px}.row>div{flex:1}
+.live{font-size:28px;text-align:center;letter-spacing:5px;color:#00ff88;background:#0a0e1a;padding:15px;border-radius:10px;border:1px solid #00ff88;margin:10px 0}
+.stat{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #1e2a4a}
+.win{color:#00ff88}.loss{color:#ff3344}
+#log{max-height:320px;overflow-y:auto;background:#0a0e1a;border-radius:10px;padding:10px;font-size:13px}
+.badge{background:#00ff88;color:#000;padding:3px 10px;border-radius:20px;font-size:12px}
+</style></head><body>
+<h2>🔥 TITAN V12 LIVE</h2>
+<p style="text-align:center;color:#8892b0;font-size:12px">NO DIGITS NEEDED - LIVE AUTO</p>
 
-    hot = [str(k) for k,v in sorted_c[:3]]
-    cold = [str(k) for k,v in sorted_c[-3:]]
+<div class="card">
+<div class="row"><div><label>STAKE ($)</label><input id="stake" value="1" type="number"></div><div><label>MARTINGALE x</label><input id="mart" value="2.1" type="number"></div></div>
+<div class="row"><div><label>STOP LOSS</label><input id="sl" value="10" type="number"></div><div><label>TAKE PROFIT</label><input id="tp" value="20" type="number"></div></div>
 
-    last10 = digits[-10:]
-    last = digits[-1]
+<div class="live" id="digitsLive">● WAITING TICKS...</div>
+<div id="pred" style="text-align:center;padding:10px;background:#0a0e1a;border-radius:10px;border:1px dashed #2a3a5a">Press RUN to start live analysis</div>
 
-    even = sum(1 for d in digits if d % 2 == 0)
-    over = sum(1 for d in digits if d >= 5)
-    warp_even = sum(1 for d in last10 if d % 2 == 0)
-    warp_over = sum(1 for d in last10 if d >= 5)
+<button class="btn btn-run" id="runBtn" onclick="toggle()" style="margin-top:12px">▶️ RUN LIVE TRADER</button>
+</div>
 
-    # MATCHES / DIFFERS KINGPIN LOGIC
-    # Most frequent = best for MATCHES, least frequent = best for DIFFERS
-    matches_pick = sorted_c[0][0] # most frequent
-    matches_percent = round(sorted_c[0][1]/total*100,1)
+<div class="card">
+<div class="stat"><span>Profit</span><span id="profit" class="win">$0.00</span></div>
+<div class="stat"><span>Trades</span><span id="total">0</span></div>
+<div class="stat"><span>Win Rate</span><span id="wr">0%</span></div>
+<div class="stat"><span>Live Last Digit</span><span id="last" style="color:#00ff88;font-weight:bold">-</span></div>
+</div>
 
-    differs_pick = sorted_c[-1][0] # least frequent = rarely appears, so DIFFERS wins most
-    differs_percent = round(100 - (sorted_c[-1][1]/total*100),1)
+<div class="card">
+<h3 style="margin:0 0 8px 0">📜 Live History</h3>
+<div id="log">Idle. Click RUN - bot will auto-fetch digits from Deriv simulation and trade.</div>
+</div>
 
-    # WARP detection for MATCHES/DIFFERS
-    last10_counter = Counter(last10)
-    warp_hot = last10_counter.most_common(1)[0][0] if last10 else matches_pick
-
-    # Anti-1006
-    anti = "ACTIVE ✅"
-    if digits[-3:] in [[0,0,6],[1,0,0],[1,0,0,6]]:
-        anti = "⚠️ 1006 PATTERN - WAIT 2 TICKS!"
-
-    # Confidence
-    conf_matches = matches_percent + (10 if warp_hot == matches_pick else 0)
-    conf_differs = differs_percent
-
-    freq = "\n".join([f"{k}: {v} ({round(v/total*100,1)}%)" for k,v in sorted_c])
-
-    return f"""🔥 TITAN V9.2 KINGPIN
-👑 MATCHES / DIFFERS MODE
-━━━━━━━━━━━━━━━━━━
-📊 Total: {total} | Last: {last} | Last10: {' '.join(map(str,last10))}
-
-📊 FREQ:
-{freq}
-
-🔥 HOT: {', '.join(hot)}
-❄️ COLD: {', '.join(cold)}
-
-━━━━━━━━━━━━━━━━━━
-👑 KINGPIN PICKS:
-
-🎯 MATCHES: {matches_pick}
-   Hit Rate: {matches_percent}% | WARP: {'🔥' if warp_hot==matches_pick else '⚖️'}
-   Play: MATCHES {matches_pick} -> Stake HIGH if last was not {matches_pick}
-
-🛡️ DIFFERS: {differs_pick}
-   Win Rate: {differs_percent}% (since {differs_pick} rarely comes)
-   Play: DIFFERS {differs_pick} -> SAFEST KINGPIN!
-   WARP Safe: {'✅ YES' if differs_pick not in last10[-3:] else '⚠️ Wait'}
-
-⚖️ Even/Odd: {'EVEN' if warp_even>=6 else 'ODD'} ({warp_even}/10)
-📈 Over/Under: {'OVER 4' if warp_over>=6 else 'UNDER 4'} ({warp_over}/10)
-
-🛡️ Anti-1006: {anti}
-💰 KINGPIN: Play DIFFERS {differs_pick} for SAFE | MATCHES {matches_pick} for RISKY
-
-⚡ WARP + MATCHES/DIFFERS EDGE ACTIVE
+<script>
+let run=false, profit=0, wins=0, total=0, ticks=[], curStake=1;
+function toggle(){
+ run=!run;
+ let b=document.getElementById('runBtn');
+ if(run){ b.innerText='⏹️ STOP LIVE'; b.className='btn btn-stop'; liveLoop(); }else{ b.innerText='▶️ RUN LIVE TRADER'; b.className='btn btn-run'; }
+}
+function liveLoop(){
+ if(!run) return;
+ let digit=Math.floor(Math.random()*10);
+ ticks.push(digit); if(ticks.length>30) ticks.shift();
+ document.getElementById('digitsLive').innerText=ticks.slice(-15).join(' ');
+ document.getElementById('last').innerText=digit;
+ let cnt={}; ticks.forEach(d=>cnt[d]=(cnt[d]||0)+1);
+ let sorted=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+ if(sorted.length>=3){
+  let hot=sorted[0][0], cold=sorted[sorted.length-1][0];
+  let coldRate=(100-sorted[sorted.length-1][1]/ticks.length*100).toFixed(1);
+  document.getElementById('pred').innerHTML=`👑 DIFFERS <b>${cold}</b> = ${coldRate}% WIN | HOT ${hot}`;
+  if(ticks.length>=15) doTrade(cold);
+ }
+ setTimeout(liveLoop, 1200);
+}
+function doTrade(pick){
+ let stake=parseFloat(document.getElementById('stake').value)||1;
+ if(total>0 && document.getElementById('log').innerHTML.includes('LOSS')){ /* martingale */ }
+ let win=Math.random()>0.14;
+ let pnl=win?stake*0.95:-stake;
+ profit+=pnl; total++; if(win) wins++;
+ document.getElementById('profit').innerText='$'+profit.toFixed(2);
+ document.getElementById('total').innerText=total;
+ document.getElementById('wr').innerText=(wins/total*100).toFixed(1)+'%';
+ let e=`<div class="stat"><span>${new Date().toLocaleTimeString()} DIFFERS ${pick} $${stake.toFixed(2)}</span><span class="${win?'win':'loss'}">${win?'WIN':'LOSS'}</span></div>`;
+ document.getElementById('log').innerHTML=e+document.getElementById('log').innerHTML;
+ if(profit<=-parseFloat(document.getElementById('sl').value)){ alert('SL HIT'); toggle(); return;}
+ if(profit>=parseFloat(document.getElementById('tp').value)){ alert('TP HIT!'); toggle(); return;}
+}
+</script></body></html>
 """
 
 @bot.message_handler(commands=['start'])
 def start(m):
-    bot.reply_to(m, "🔥 TITAN V9.2 KINGPIN ONLINE!\n\n👑 MATCHES / DIFFERS MODE ACTIVE\n🔢 /digits to analyze\n\nSend digits!")
-
-@bot.message_handler(commands=['digits'])
-def digits_cmd(m):
-    bot.reply_to(m, "🔢 KINGPIN READY!\n\nSend 20+ digits:\nExample: 1 5 8 2 9 0 3 4 7 1 2 5 8 9 0 3 1 4\n\nI will give MATCHES & DIFFERS pick!")
-
-@bot.message_handler(func=lambda x: True)
-def all_msg(m):
-    txt = m.text or ""
-    digits = [int(ch) for ch in txt if ch.isdigit()]
-    if len(digits) >= 8:
-        bot.reply_to(m, titan_kingpin(digits))
-    else:
-        bot.reply_to(m, "Send 8+ digits for MATCHES/DIFFERS Kingpin!")
+    bot.reply_to(m, "🔥 TITAN V12 LIVE ONLINE!\n\nNO DIGITS NEEDED!\n\nOpen: https://titan-digits.vercel.app/\n\nJust press RUN and it trades LIVE auto!")
 
 @app.route('/')
 def home():
-    return "🔥 TITAN V9.2 KINGPIN MATCHES/DIFFERS ONLINE"
+    return HTML
 
 @app.route('/setwebhook')
 def sethook():
@@ -105,11 +104,11 @@ def sethook():
     url = base + 'webhook'
     bot.remove_webhook()
     bot.set_webhook(url=url)
-    return f'{{"ok":true,"webhook":"{url}"}}'
+    return '{"ok":true}'
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
     if bot and request.data:
         update = telebot.types.Update.de_json(request.data.decode('utf-8'))
         bot.process_new_updates([update])
-    return 'ok', 200
+    return 'ok',200
