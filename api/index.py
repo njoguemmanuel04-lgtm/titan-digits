@@ -1,114 +1,48 @@
-import os
-from flask import Flask, request
-import telebot
-
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
-bot = telebot.TeleBot(BOT_TOKEN) if BOT_TOKEN else None
-app = Flask(__name__)
-
-HTML = """
 <!DOCTYPE html>
-<html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TITAN V12 LIVE</title>
-<style>
-body{background:#0a0e1a;color:#fff;font-family:Arial;padding:15px;margin:0}
-.card{background:#141a2f;border-radius:15px;padding:15px;margin-bottom:12px;border:1px solid #1e2a4a}
-h2{color:#00ff88;text-align:center;margin:5px}
-input{width:100%;background:#0a0e1a;border:1px solid #2a3a5a;color:#fff;padding:12px;border-radius:10px;margin:5px 0 10px 0;font-size:16px}
-.btn{width:100%;padding:14px;border:none;border-radius:12px;font-weight:bold;font-size:16px;cursor:pointer}
-.btn-run{background:linear-gradient(135deg,#00ff88,#00cc6a);color:#000}
-.btn-stop{background:#ff3344;color:#fff}
-.row{display:flex;gap:10px}.row>div{flex:1}
-.live{font-size:28px;text-align:center;letter-spacing:5px;color:#00ff88;background:#0a0e1a;padding:15px;border-radius:10px;border:1px solid #00ff88;margin:10px 0}
-.stat{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #1e2a4a}
-.win{color:#00ff88}.loss{color:#ff3344}
-#log{max-height:320px;overflow-y:auto;background:#0a0e1a;border-radius:10px;padding:10px;font-size:13px}
-.badge{background:#00ff88;color:#000;padding:3px 10px;border-radius:20px;font-size:12px}
-</style></head><body>
-<h2>🔥 TITAN V12 LIVE</h2>
-<p style="text-align:center;color:#8892b0;font-size:12px">NO DIGITS NEEDED - LIVE AUTO</p>
-
-<div class="card">
-<div class="row"><div><label>STAKE ($)</label><input id="stake" value="1" type="number"></div><div><label>MARTINGALE x</label><input id="mart" value="2.1" type="number"></div></div>
-<div class="row"><div><label>STOP LOSS</label><input id="sl" value="10" type="number"></div><div><label>TAKE PROFIT</label><input id="tp" value="20" type="number"></div></div>
-
-<div class="live" id="digitsLive">● WAITING TICKS...</div>
-<div id="pred" style="text-align:center;padding:10px;background:#0a0e1a;border-radius:10px;border:1px dashed #2a3a5a">Press RUN to start live analysis</div>
-
-<button class="btn btn-run" id="runBtn" onclick="toggle()" style="margin-top:12px">▶️ RUN LIVE TRADER</button>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TITAN V16.1 SMART BARRIER</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>body{font-family:monospace;background:#050508;color:#fff}.mode-active{background:#00ff88;color:#000!important}.mode-forex-active{background:#00aaff;color:#fff!important}</style>
+</head>
+<body class="p-2 max-w-6xl mx-auto">
+<div class="bg-[#0a0a0f] border border-purple-500/30 rounded-xl p-3 mb-2">
+<input id="token" type="password" placeholder="Deriv API Token" class="w-full bg-black border border-gray-700 rounded-lg px-3 py-2 text-xs mb-2">
+<div class="grid grid-cols-2 gap-2">
+<select id="symbol" class="bg-black border border-gray-700 rounded-lg px-2 py-2 text-xs"><option value="R_10">R_10</option><option value="frxEURUSD">EUR/USD</option></select>
+<select id="duration" class="bg-black border border-gray-700 rounded-lg px-2 py-2 text-xs"><option value="5t">5 Ticks</option><option value="5m">5 Min</option></select>
 </div>
-
-<div class="card">
-<div class="stat"><span>Profit</span><span id="profit" class="win">$0.00</span></div>
-<div class="stat"><span>Trades</span><span id="total">0</span></div>
-<div class="stat"><span>Win Rate</span><span id="wr">0%</span></div>
-<div class="stat"><span>Live Last Digit</span><span id="last" style="color:#00ff88;font-weight:bold">-</span></div>
+<button onclick="connect()" class="w-full mt-2 bg-[#00ff88] text-black font-black px-4 py-2 rounded-lg text-xs">CONNECT REAL - SMART S/R</button>
+<div class="grid grid-cols-2 gap-2 mt-2 text-[10px]"><div id="support" class="bg-green-900/20 border border-green-500/40 rounded p-2">SUPPORT: --</div><div id="resistance" class="bg-red-900/20 border border-red-500/40 rounded p-2">RESISTANCE: --</div></div>
+<div id="smartBarrierDisplay" class="text-[10px] text-purple-400 mt-1">SMART BARRIERS: AUTO</div>
 </div>
-
-<div class="card">
-<h3 style="margin:0 0 8px 0">📜 Live History</h3>
-<div id="log">Idle. Click RUN - bot will auto-fetch digits from Deriv simulation and trade.</div>
+<div class="grid grid-cols-4 gap-2 mb-2">
+<button onclick="setM('differs')" id="m-differs" class="mode-active border rounded-xl py-2 text-[10px]">DIFFERS</button>
+<button onclick="setM('evenodd')" id="m-evenodd" class="bg-[#0a0a0f] border border-gray-800 rounded-xl py-2 text-[10px]">EVEN/ODD</button>
+<button onclick="setM('touchnotouch')" id="m-touchnotouch" class="mode-forex-active border border-purple-500 rounded-xl py-2 text-[10px]">SMART TOUCH</button>
+<button onclick="setM('risefall')" id="m-risefall" class="bg-[#0a0a0f] border border-blue-500/30 rounded-xl py-2 text-[10px]">RISE/FALL</button>
 </div>
-
+<div class="bg-[#0a0a0f] border border-gray-800 rounded-xl p-3">
+<div id="sig" class="font-black text-[12px]">WAITING SMART</div>
+<div id="price" class="text-[11px]">Price: -</div>
+<div id="ticks" class="flex gap-1 flex-wrap mt-2"></div>
+<div class="relative bg-black rounded h-[70px] mt-2">
+<div id="barrierLineUp" class="absolute w-full border-t border-dashed border-purple-400 text-[8px]" style="top:20%">UP</div>
+<div id="barrierLineDown" class="absolute w-full border-t border-dashed border-green-400 text-[8px]" style="top:80%">DOWN</div>
+<div id="currentPriceLine" class="absolute w-full border-t border-white/50 text-[8px]" style="top:50%">PRICE</div>
+</div>
+<button id="run" onclick="toggle()" class="w-full mt-3 bg-[#00ff88] text-black font-black rounded-xl py-3">RUN SMART</button>
+</div>
 <script>
-let run=false, profit=0, wins=0, total=0, ticks=[], curStake=1;
-function toggle(){
- run=!run;
- let b=document.getElementById('runBtn');
- if(run){ b.innerText='⏹️ STOP LIVE'; b.className='btn btn-stop'; liveLoop(); }else{ b.innerText='▶️ RUN LIVE TRADER'; b.className='btn btn-run'; }
-}
-function liveLoop(){
- if(!run) return;
- let digit=Math.floor(Math.random()*10);
- ticks.push(digit); if(ticks.length>30) ticks.shift();
- document.getElementById('digitsLive').innerText=ticks.slice(-15).join(' ');
- document.getElementById('last').innerText=digit;
- let cnt={}; ticks.forEach(d=>cnt[d]=(cnt[d]||0)+1);
- let sorted=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
- if(sorted.length>=3){
-  let hot=sorted[0][0], cold=sorted[sorted.length-1][0];
-  let coldRate=(100-sorted[sorted.length-1][1]/ticks.length*100).toFixed(1);
-  document.getElementById('pred').innerHTML=`👑 DIFFERS <b>${cold}</b> = ${coldRate}% WIN | HOT ${hot}`;
-  if(ticks.length>=15) doTrade(cold);
- }
- setTimeout(liveLoop, 1200);
-}
-function doTrade(pick){
- let stake=parseFloat(document.getElementById('stake').value)||1;
- if(total>0 && document.getElementById('log').innerHTML.includes('LOSS')){ /* martingale */ }
- let win=Math.random()>0.14;
- let pnl=win?stake*0.95:-stake;
- profit+=pnl; total++; if(win) wins++;
- document.getElementById('profit').innerText='$'+profit.toFixed(2);
- document.getElementById('total').innerText=total;
- document.getElementById('wr').innerText=(wins/total*100).toFixed(1)+'%';
- let e=`<div class="stat"><span>${new Date().toLocaleTimeString()} DIFFERS ${pick} $${stake.toFixed(2)}</span><span class="${win?'win':'loss'}">${win?'WIN':'LOSS'}</span></div>`;
- document.getElementById('log').innerHTML=e+document.getElementById('log').innerHTML;
- if(profit<=-parseFloat(document.getElementById('sl').value)){ alert('SL HIT'); toggle(); return;}
- if(profit>=parseFloat(document.getElementById('tp').value)){ alert('TP HIT!'); toggle(); return;}
-}
-</script></body></html>
-"""
-
-@bot.message_handler(commands=['start'])
-def start(m):
-    bot.reply_to(m, "🔥 TITAN V12 LIVE ONLINE!\n\nNO DIGITS NEEDED!\n\nOpen: https://titan-digits.vercel.app/\n\nJust press RUN and it trades LIVE auto!")
-
-@app.route('/')
-def home():
-    return HTML
-
-@app.route('/setwebhook')
-def sethook():
-    base = request.url_root.replace('http://','https://')
-    url = base + 'webhook'
-    bot.remove_webhook()
-    bot.set_webhook(url=url)
-    return '{"ok":true}'
-
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    if bot and request.data:
-        update = telebot.types.Update.de_json(request.data.decode('utf-8'))
-        bot.process_new_updates([update])
-    return 'ok',200
+let prices=[],ticks=[],ws=null,connected=false,running=false,mode='touchnotouch',support=0,resistance=0,smartUpper=0,smartLower=0;
+function setM(m){mode=m;document.querySelectorAll('[id^=m-]').forEach(b=>{b.classList.remove('mode-active','mode-forex-active')});document.getElementById('m-'+m).classList.add(m==='touchnotouch'||m==='risefall'?'mode-forex-active':'mode-active');}
+function calcRSI(a,p=14){if(a.length<p+1)return 50;let g=0,l=0;for(let i=a.length-p;i<a.length;i++){let d=a[i]-a[i-1];if(d>0)g+=d;else l+=-d;}return l===0?70:100-(100/(1+g/l));}
+function findSR(arr){if(arr.length<20)return null;let last=arr.slice(-50);let max=Math.max(...last),min=Math.min(...last);let rh=[],rl=[];for(let i=1;i<last.length-1;i++){if(last[i]>last[i-1]&&last[i]>last[i+1])rh.push(last[i]);if(last[i]<last[i-1]&&last[i]<last[i+1])rl.push(last[i]);}let res=rh.length?Math.max(...rh.slice(-3)):max,sup=rl.length?Math.min(...rl.slice(-3)):min,range=res-sup,buf=range*0.15||0.0002;return{support:sup,resistance:res,smartUpper:res+buf,smartLower:sup-buf,range};}
+function connect(){let t=document.getElementById('token').value.trim();if(!t){alert('token');return;}let s=document.getElementById('symbol').value;if(ws)ws.close();ws=new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');ws.onopen=()=>{ws.send(JSON.stringify({authorize:t}));};ws.onmessage=e=>{let d=JSON.parse(e.data);if(d.msg_type==='authorize'){connected=true;ws.send(JSON.stringify({ticks:s,subscribe:1}));}if(d.msg_type==='tick'){let p=parseFloat(d.tick.quote);prices.push(p);ticks.push(parseInt(p.toString().slice(-1)));if(prices.length>150)prices.shift();let rsi=calcRSI(prices);let sr=findSR(prices);if(sr){support=sr.support;resistance=sr.resistance;smartUpper=sr.smartUpper;smartLower=sr.smartLower;document.getElementById('support').innerHTML=`SUPPORT ${support.toFixed(5)} LOWER ${smartLower.toFixed(5)}`;document.getElementById('resistance').innerHTML=`RESISTANCE ${resistance.toFixed(5)} UPPER ${smartUpper.toFixed(5)}`;document.getElementById('smartBarrierDisplay').innerText=`SMART U:${smartUpper.toFixed(5)} L:${smartLower.toFixed(5)}`;}document.getElementById('price').innerText=`Price ${p.toFixed(5)} RSI ${rsi.toFixed(1)}`;let sig='WAITING';if(mode==='touchnotouch'&&sr){if(rsi>68&&p>=sr.resistance*0.999)sig=`SMART TOUCH DOWN ${sr.smartLower.toFixed(5)}`;else if(rsi<32&&p<=sr.support*1.001)sig=`SMART TOUCH UP ${sr.smartUpper.toFixed(5)}`;else if(rsi>60)sig=`SMART TOUCH UP ${sr.smartUpper.toFixed(5)}`;else sig=`SMART NO TOUCH ${sr.smartUpper.toFixed(5)}`;document.getElementById('sig').innerText=sig;}if(running&&sr)trade(p,sr);}};}
+let can=true;function trade(price,sr){if(!can)return;let sig=document.getElementById('sig').innerText;if(sig.includes('WAITING'))return;can=false;let stake=0.5,sym=document.getElementById('symbol').value,type='ONETOUCH',bar=sig.match(/\d+\.\d+/)?.[0]||'';if(sig.includes('NO TOUCH'))type='NOTOUCH';let params={amount:stake,basis:'stake',contract_type:type,currency:'USD',duration:5,duration_unit:'t',symbol:sym,barrier:bar};ws.send(JSON.stringify({buy:1,price:stake,parameters:params}));setTimeout(()=>can=true,5000);}
+function toggle(){if(!connected){alert('connect');return;}running=!running;document.getElementById('run').innerText=running?'STOP SMART':'RUN SMART';}
+</script>
+</body>
+</html>
