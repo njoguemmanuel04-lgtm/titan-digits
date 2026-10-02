@@ -1,4 +1,11 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>TITAN V32 FORCE BUY</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-[#0f172a] text-white p-3">
+from http.server import BaseHTTPRequestHandler
+
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        html = """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>TITAN V32 FORCE BUY</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-[#0f172a] text-white p-3">
 <div class="max-w-md mx-auto">
 <h1 class="text-center font-bold text-sm tracking-widest">TITAN V32 FORCE BUY - TP/SL + BUY</h1>
 <div class="text-center text-7xl font-black text-emerald-400 my-2" id="lastDigit">-</div>
@@ -34,3 +41,5 @@ function clearLog(){document.getElementById("log").innerHTML="";} function toggl
 document.getElementById("token").addEventListener("input",()=>{token=document.getElementById("token").value.trim(); localStorage.setItem("deriv_token",token); if(token) authorize();});
 window.onload=()=>{let saved=localStorage.getItem("deriv_token"); if(saved){document.getElementById("token").value=saved; token=saved; } connectTicks(); if(saved) setTimeout(authorize,1000);};
 </script></body></html>
+"""
+        self.wfile.write(html.encode())
