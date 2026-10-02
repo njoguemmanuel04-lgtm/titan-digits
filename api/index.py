@@ -1,125 +1,36 @@
-import os, requests
-from flask import Flask, request, Response, jsonify
-app=Flask(__name__)
-DERIV_REST="https://api.derivws.com"
-DERIV_APP_ID=os.environ.get("DERIV_APP_ID","34xM40w3JyILr0iqbYGhhM")
-
-@app.route("/api/deriv-auth", methods=["POST","OPTIONS"])
-def d_auth():
-    if request.method=="OPTIONS": return Response("",200,headers={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"*","Access-Control-Allow-Methods":"POST, OPTIONS"})
-    try:
-        pat=request.get_json(force=True,silent=True).get("pat","").strip()
-        h={"Authorization":f"Bearer {pat}","Deriv-App-ID":DERIV_APP_ID,"Accept":"application/json"}
-        r=requests.get(f"{DERIV_REST}/trading/v1/options/accounts",headers=h,timeout=20)
-        return jsonify({"ok":True,"accounts":r.json().get("data",[])})
-    except Exception as e: return jsonify({"error":str(e)}),500
-
-@app.route("/api/deriv-otp", methods=["POST","OPTIONS"])
-def d_otp():
-    if request.method=="OPTIONS": return Response("",200,headers={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"*","Access-Control-Allow-Methods":"POST, OPTIONS"})
-    try:
-        b=request.get_json(force=True); h={"Authorization":f"Bearer {b.get('pat','')}","Deriv-App-ID":DERIV_APP_ID,"Accept":"application/json"}
-        r=requests.post(f"{DERIV_REST}/trading/v1/options/accounts/{b.get('account_id')}/otp",headers=h,timeout=20)
-        return jsonify({"ok":True,"ws_url":r.json().get("data",{}).get("url")})
-    except Exception as e: return jsonify({"error":str(e)}),500
-
-@app.route('/', methods=["GET"])
-def home():
-    return Response("""
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TITAN V31 FIXED BUY</title><script src="https://cdn.tailwindcss.com"></script>
-<style>body{background:#0b0f1f;color:#fff;font-family:system-ui;margin:0}.big{font-size:90px;font-weight:900;color:#2df28b;text-align:center;line-height:1}.box{background:#1a203a;border-radius:10px;padding:10px 0;text-align:center;border:2px solid transparent}.box.hot{border-color:#2df28b;box-shadow:0 0 12px #2df28b88}.box.cold{opacity:.4}.inp{background:#171d35;border:1px solid #2a345c;border-radius:12px;padding:10px;color:#fff;width:100%;text-align:center;font-size:13px}.btn{border-radius:12px;font-weight:900;padding:12px;width:100%}.log{background:#040712;border-radius:12px;padding:8px;height:320px;overflow:auto;color:#2df28b;font-family:monospace;font-size:11px}.scan-card{background:#131a2e;border:1px solid #2df28b44;border-radius:10px;padding:8px;margin-top:6px;font-size:11px}</style>
-</head><body class="p-3 max-w-[400px] mx-auto">
-<div class="text-center font-black text-[13px] tracking-widest mt-1">TITAN V31 FIXED - TP/SL + BUY</div>
-<div id="big" class="big">8</div>
-<div id="tick" class="text-center text-[#2df28b] text-xs font-mono">TICK -- via R_10</div>
-<div id="grid" class="grid grid-cols-5 gap-2 mt-2"></div>
-<div class="text-center text-[11px] font-mono mt-2">History:<span id="hLen">0</span> | PREDICT:<span id="pred" class="text-[#2df28b]">-</span> | CONF:<span id="conf">0%</span></div>
-<div class="flex justify-center gap-3 text-[10px] font-mono"><span class="text-[#2df28b]">🔥 HOT:<span id="hotTxt">-</span></span><span class="text-red-400">❄️ COLD:<span id="coldTxt">-</span></span></div>
-<div class="scan-card"><div class="font-bold text-[#2df28b] text-[11px]">🧠 SCANNER: <span id="scanStatus">IDLE</span></div><div id="scanDetails" class="text-[10px] mt-1 text-gray-300">Waiting 20 ticks...</div><div id="bestMarket" class="mt-1 font-black text-xs"></div></div>
-<div id="status" class="text-center text-[10px] text-gray-400 mt-2">Loading saved token...</div>
-<input id="pat" type="password" class="inp mt-2" placeholder="pat_...">
-<button onclick="toggle()" class="btn mt-2 bg-[#2df28b] text-black text-xs">👁️ Show / Hide Token</button>
-<div class="grid grid-cols-2 gap-2 mt-2"><input id="stake" type="number" class="inp" value="1" step="0.1"><input id="marti" type="number" class="inp" value="2.1" step="0.1"></div>
-<div class="grid grid-cols-2 gap-2 mt-2"><input id="tp" type="number" class="inp border-green-500" value="10" step="1"><input id="sl" type="number" class="inp border-red-500" value="20" step="1"></div>
-<div class="text-[9px] text-center text-gray-400 mt-1">TP = Take Profit (stop P >= TP) | SL = Stop Loss (stop P <= -SL)</div>
-<button onclick="connect()" id="btnConn" class="btn mt-2 bg-[#1a203a] border text-white text-xs">🔍 LOAD & CONNECT</button>
-<button onclick="smartRun()" id="btnSmart" class="btn mt-2 bg-gradient-to-r from-[#2df28b] to-[#00d4ff] text-black text-[13px]">🧠 ONE BUTTON SMART SCAN & TRADE</button>
-<div class="grid grid-cols-2 gap-2 mt-2"><button onclick="stopBot()" class="btn bg-red-500 text-white text-xs py-2">⏹️ STOP</button><button onclick="document.getElementById('log').innerHTML=''" class="btn bg-[#1a203a] text-white text-xs py-2">🧹 CLEAR</button></div>
-<div id="bal" class="text-center text-xs font-mono mt-2">Balance:- | P:$0 W:0 L:0 Next:$1 | HOLD</div>
-<div id="tpSlBar" class="text-center text-[10px] font-mono mt-1 text-yellow-300">TP:$10 SL:$20 | 0% to target</div>
-<div id="log" class="log mt-2">> V31 FIXED underlying_symbol<br>> Scanner finds 60%+ edge then BUYS<br></div>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>TITAN V32 FORCE BUY</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-[#0f172a] text-white p-3">
+<div class="max-w-md mx-auto">
+<h1 class="text-center font-bold text-sm tracking-widest">TITAN V32 FORCE BUY - TP/SL + BUY</h1>
+<div class="text-center text-7xl font-black text-emerald-400 my-2" id="lastDigit">-</div>
+<div class="text-center text-xs text-emerald-400" id="tickInfo">WAITING...</div>
+<div class="grid grid-cols-5 gap-2 my-3" id="digitGrid"></div>
+<div class="text-center text-xs">History:<span id="histCount">0</span> | PREDICT:<span id="predict">-</span> | CONF:<span id="conf">0</span>%</div>
+<div class="text-center text-xs" id="hotCold"></div>
+<div class="bg-slate-800 rounded-xl p-3 my-3 border border-emerald-500/30"><div id="scanStatus" class="text-emerald-400 font-bold text-sm">🧠 SCANNER: WAITING</div><div id="scanDetails" class="text-[11px] text-gray-300"></div><div id="bestMarket" class="text-xs mt-1 font-bold"></div></div>
+<div class="text-center text-xs text-gray-400" id="dotStatus">🔴 DOT... NOT CONNECTED</div>
+<div class="bg-slate-800 rounded-xl p-2 my-3 h-6 overflow-hidden text-[10px] text-gray-500" id="dotBox">..............................</div>
+<button onclick="toggleToken()" class="w-full bg-emerald-500 text-black font-bold py-3 rounded-xl mb-3">👁️ Show / Hide Token</button>
+<div class="grid grid-cols-2 gap-2 mb-2"><input id="stake" value="1" class="bg-slate-800 p-3 rounded-xl text-center"><input id="martingale" value="2.1" class="bg-slate-800 p-3 rounded-xl text-center"><input id="tp" value="10" class="bg-slate-800 p-3 rounded-xl text-center border border-emerald-500"><input id="sl" value="20" class="bg-slate-800 p-3 rounded-xl text-center border border-red-500"></div>
+<div class="text-[11px] text-center text-gray-400 mb-2">TP = Take Profit (stop P >= TP) | SL = Stop Loss (stop P <= -SL)</div>
+<div class="border border-gray-400 rounded-xl p-3 text-center mb-3"><input id="token" type="password" placeholder="Paste Deriv API Token" class="bg-transparent w-full text-center text-xs outline-none"><div id="tokenCheck" class="text-xs mt-1"></div></div>
+<button onclick="startTrading()" class="w-full bg-gradient-to-r from-emerald-400 to-cyan-400 text-black font-black py-4 rounded-xl mb-2">🧠 ONE BUTTON SMART SCAN & TRADE</button>
+<div class="grid grid-cols-2 gap-2"><button onclick="stopTrading()" class="bg-red-500 font-bold py-3 rounded-xl">⏹️ STOP</button><button onclick="clearLog()" class="bg-slate-800 font-bold py-3 rounded-xl">🧹 CLEAR</button></div>
+<div class="text-center text-sm mt-3"><span id="balance">Bal:$0</span> | <span id="profit">P:$0.00</span> <span id="wins">W:0</span> <span id="loss">L:0</span> <span id="nextStake">Next:$1</span> | <span id="tradeStatus">HOLD</span></div>
+<div class="text-center text-xs text-yellow-400" id="tpSlInfo">TP:$10 SL:$20 | 0% to TP | P:$0.00</div>
+<div id="log" class="bg-black/50 rounded-xl p-2 mt-3 h-64 overflow-y-auto text-[11px] font-mono"></div>
+</div>
 <script>
-let counts=Array(10).fill(0), history=[], ws=null, auto=false, curStake=1, profit=0, wins=0, losses=0, isTrading=false;
-function log(m,c="#2df28b"){let l=document.getElementById("log"); l.innerHTML=`<div style="color:${c}">> ${m}</div>`+l.innerHTML;}
-function toggle(){let p=document.getElementById("pat"); p.type=p.type=="password"?"text":"password";}
-function loadSaved(){let s=localStorage.getItem("titan_pat"); if(s){document.getElementById("pat").value=s; document.getElementById("status").innerText="✅ SAVED "+s.slice(0,10)+"..."; setTimeout(()=>connect(),800);} let tp=localStorage.getItem("titan_tp"); if(tp) document.getElementById("tp").value=tp; let sl=localStorage.getItem("titan_sl"); if(sl) document.getElementById("sl").value=sl; render();}
-function render(){
- let total=history.length||1; let sorted=[...Array(10).keys()].map(i=>({d:i,c:counts[i],p:Math.round(counts[i]/total*100)||0})).sort((a,b)=>b.c-a.c);
- document.getElementById("hotTxt").innerText=sorted.slice(0,3).map(h=>h.d).join(" "); document.getElementById("coldTxt").innerText=sorted.slice(-3).map(c=>c.d).join(" ");
- document.getElementById("hLen").innerText=history.length; document.getElementById("pred").innerText=sorted[0]?.d??"-"; document.getElementById("conf").innerText=(sorted[0]?.p||0)+"%";
- let g=document.getElementById("grid"); g.innerHTML=""; for(let i=0;i<10;i++){let pct=history.length?Math.round(counts[i]/history.length*100):0; let isHot=sorted[0]?.d==i, isCold=sorted.slice(-3).some(c=>c.d==i); let cls=isHot?"box hot":isCold?"box cold":"box"; g.innerHTML+=`<div class="${cls}"><div class="text-lg font-black">${i}</div><div class="text-[10px] opacity-60">${pct}%</div></div>`;}
- if(history.length>=5) runScanner(); updateTpSlBar();
-}
-function updateTpSlBar(){let tp=parseFloat(document.getElementById("tp").value)||20; let sl=parseFloat(document.getElementById("sl").value)||20; let txt=""; if(profit>=0) txt=`TP:$${tp} SL:$${sl} | ${Math.min(100,(profit/tp*100)).toFixed(0)}% to TP | P:$${profit.toFixed(2)}`; else txt=`TP:$${tp} SL:$${sl} | P:$${profit.toFixed(2)} | ${Math.abs(profit/sl*100).toFixed(0)}% to SL`; document.getElementById("tpSlBar").innerText=txt;}
-function runScanner(){
- if(history.length<20){document.getElementById("scanStatus").innerText=`COLLECTING ${history.length}/20`; return null;}
- let total=history.length; let even=history.filter(d=>d%2==0).length, odd=total-even; let evenPct=Math.round(even/total*100), oddPct=100-evenPct;
- let over4=history.filter(d=>d>4).length, overPct=Math.round(over4/total*100), underPct=100-overPct; let over2=history.filter(d=>d>2).length, over2Pct=Math.round(over2/total*100);
- let sorted=[...Array(10).keys()].map(i=>({d:i,c:counts[i],p:Math.round(counts[i]/total*100)})).sort((a,b)=>b.c-a.c); let top=sorted[0];
- let opps=[]; if(evenPct>=65) opps.push({market:"DIGITEVEN", conf:evenPct, reason:`Even ${evenPct}%`, barrier:null, type:"Even/Odd"});
- if(oddPct>=65) opps.push({market:"DIGITODD", conf:oddPct, reason:`Odd ${oddPct}%`, barrier:null, type:"Even/Odd"});
- if(overPct>=65) opps.push({market:"DIGITOVER", barrier:4, conf:overPct, reason:`Over4 ${overPct}%`, type:"Over/Under"});
- if(underPct>=65) opps.push({market:"DIGITUNDER", barrier:4, conf:underPct, reason:`Under4 ${underPct}%`, type:"Over/Under"});
- if(over2Pct>=75) opps.push({market:"DIGITOVER", barrier:2, conf:over2Pct, reason:`Over2 ${over2Pct}% STRONG`, type:"Over/Under"});
- if(top.p>=28) opps.push({market:"DIGITMATCH", barrier:top.d, conf:top.p+25, reason:`Match ${top.d}`, type:"Match/Diff"});
- if(top.p<=8) opps.push({market:"DIGITDIFF", barrier:top.d, conf:68, reason:`Diff ${top.d}`, type:"Match/Diff"});
- opps.sort((a,b)=>b.conf-a.conf); let best=opps[0];
- document.getElementById("scanDetails").innerText=`Even:${evenPct}% Odd:${oddPct}% | Over4:${overPct}% Under4:${underPct}% Over2:${over2Pct}% | Top:${top.d} ${top.p}%`;
- if(best && best.conf>=60){document.getElementById("scanStatus").innerText="✅ FAVOURABLE FOUND"; document.getElementById("scanStatus").style.color="#2df28b"; document.getElementById("bestMarket").innerHTML=`🎯 ${best.type} → ${best.market} ${best.barrier??''} (${best.conf}%)`; return best;}
- else{document.getElementById("scanStatus").innerText="⏸️ HOLDING"; document.getElementById("scanStatus").style.color="#f59e0b"; document.getElementById("bestMarket").innerText="HOLD - No edge"; return null;}
-}
-async function connect(){
- let pat=document.getElementById("pat").value.trim(); if(!pat.startsWith("pat_")){alert("pat_ required");return;}
- localStorage.setItem("titan_pat",pat); localStorage.setItem("titan_tp",document.getElementById("tp").value); localStorage.setItem("titan_sl",document.getElementById("sl").value);
- document.getElementById("btnConn").innerText="⏳...";
- let r=await fetch("/api/deriv-auth",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pat})});
- let j=await r.json(); if(j.error){log("❌ "+j.error,"#ef4444");return;}
- let acc=j.accounts.find(a=>a.account_id.includes("DOT"))||j.accounts[0];
- let r2=await fetch("/api/deriv-otp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pat, account_id:acc.account_id})});
- let j2=await r2.json(); ws=new WebSocket(j2.ws_url);
- ws.onopen=()=>{document.getElementById("status").innerText=`🟢 ${acc.account_id} CONNECTED`; log(`CONNECTED ${acc.account_id} $${acc.balance}`,"#22c55e"); ws.send(JSON.stringify({ticks:"R_10", subscribe:1})); ws.send(JSON.stringify({balance:1, subscribe:1})); document.getElementById("btnConn").innerText=`✅ ${acc.account_id}`;};
- ws.onmessage=(e)=>{
-  let d=JSON.parse(e.data);
-  if(d.tick){let last=parseInt(String(d.tick.quote).slice(-1)); document.getElementById("big").innerText=last; document.getElementById("tick").innerText=`TICK ${d.tick.quote} LAST:${last} via R_10`; history.unshift(last); if(history.length>100) history.pop(); counts[last]++; render(); log(`TICK ${d.tick.quote} LAST:${last} | ${document.getElementById("scanStatus").innerText}`);}
-  if(d.balance){document.getElementById("bal").innerText=`Bal:$${d.balance.balance} | P:$${profit.toFixed(2)} W:${wins} L:${losses} Next:$${curStake} | ${isTrading?"TRADING":auto?"AUTO":"HOLD"}`; updateTpSlBar();}
-  if(d.proposal && auto){log(`PROP ${d.proposal.id.slice(0,8)} $${d.proposal.ask_price} → BUYING`,"#facc15"); ws.send(JSON.stringify({buy:d.proposal.id, price:parseFloat(curStake)}));}
-  if(d.buy){log(`📈 BOUGHT ${d.buy.contract_id} $${curStake} CONFIRMED`,"#00d4ff");}
-  if(d.proposal_open_contract){
-   if(!d.proposal_open_contract.is_sold){return;}
-   let pl=parseFloat(d.proposal_open_contract.profit); profit+=pl; updateTpSlBar();
-   if(pl>0){wins++; curStake=parseFloat(document.getElementById("stake").value); log(`✅ WIN $${pl.toFixed(2)} P:$${profit.toFixed(2)} W:${wins}`,"#2df28b");}
-   else{losses++; curStake=(curStake*parseFloat(document.getElementById("marti").value)).toFixed(2); log(`❌ LOSS $${pl.toFixed(2)} Next:$${curStake} L:${losses}`,"#ef4444");}
-   isTrading=false;
-   let tp=parseFloat(document.getElementById("tp").value)||20; let sl=parseFloat(document.getElementById("sl").value)||20;
-   if(profit>=tp){log(`🎉 TP HIT $${profit.toFixed(2)} >= $${tp} STOP`,"#2df28b"); stopBot(); alert(`🎉 TP HIT! $${profit.toFixed(2)}`); return;}
-   if(profit<=-sl){log(`🛑 SL HIT $${profit.toFixed(2)} <= -$${sl} STOP`,"#ef4444"); stopBot(); alert(`🛑 SL HIT! $${profit.toFixed(2)}`); return;}
-   if(auto) setTimeout(()=>smartTrade(),3000);
-  }
-  if(d.error){log(`❌ ${d.error.code} ${d.error.message}`,"#ef4444"); isTrading=false; if(auto) setTimeout(()=>smartTrade(),3000);}
- };
-}
-function smartTrade(){
- if(isTrading) return; let best=runScanner(); if(!best){log("⏸️ HOLD - waiting 3s...","#f59e0b"); if(auto) setTimeout(()=>smartTrade(),3000); return;}
- // FIXED: underlying_symbol not symbol
- let base={proposal:1, amount:parseFloat(curStake), basis:"stake", contract_type:best.market, currency:"USD", duration:1, duration_unit:"t", underlying_symbol:"R_10"};
- if(best.barrier!==null) base.barrier=best.barrier; isTrading=true;
- log(`🎯 TRADE → ${best.type}: ${best.market} ${best.barrier??''} $${curStake} CONF:${best.conf}%`,"#00d4ff");
- ws.send(JSON.stringify(base));
-}
-function smartRun(){if(!ws){alert("Connect first");return;} auto=true; curStake=parseFloat(document.getElementById("stake").value); isTrading=false; localStorage.setItem("titan_tp",document.getElementById("tp").value); localStorage.setItem("titan_sl",document.getElementById("sl").value); document.getElementById("btnSmart").innerText="🧠 TRADING (TP/SL Active)"; log(`🧠 START TP:$${document.getElementById("tp").value} SL:$${document.getElementById("sl").value}`,"#00d4ff"); smartTrade();}
-function stopBot(){auto=false; isTrading=false; document.getElementById("btnSmart").innerText="🧠 ONE BUTTON SMART SCAN & TRADE"; log("⏹️ STOPPED","#ef4444");}
-window.onload=loadSaved;
+let history=[],counts=Array(10).fill(0),ws=null,lastDigit=null,trading=false,nextStake=1,profit=0,wins=0,losses=0,token="",balance=0,dotConnected=false,awaitingResult=false;
+const grid=document.getElementById("digitGrid"); for(let i=0;i<10;i++){let d=document.createElement("div"); d.className="bg-slate-800 rounded-xl p-2 text-center"; d.innerHTML=`<div class="font-bold">${i}</div><div class="text-[10px] text-gray-400" id="pct${i}">0%</div>`; d.id=`digit${i}`; grid.appendChild(d);}
+function logM(m){let l=document.getElementById("log"); l.innerHTML+=`> ${m}<br>`; l.scrollTop=l.scrollHeight;}
+function updateGrid(){let total=history.length||1; for(let i=0;i<10;i++){let p=Math.round(counts[i]/total*100); document.getElementById(`pct${i}`).innerText=p+"%"; document.getElementById(`digit${i}`).className=lastDigit==i?"bg-emerald-500/30 border border-emerald-400 rounded-xl p-2 text-center":"bg-slate-800 rounded-xl p-2 text-center";}}
+function runScanner(){if(history.length<20){document.getElementById("scanStatus").innerText=`COLLECTING ${history.length}/20`; return null;} let total=history.length; let even=history.filter(d=>d%2==0).length; let evenPct=Math.round(even/total*100); let oddPct=100-evenPct; let over4=history.filter(d=>d>4).length; let overPct=Math.round(over4/total*100); let underPct=100-overPct; let over2=history.filter(d=>d>2).length; let over2Pct=Math.round(over2/total*100); let sorted=[...Array(10).keys()].map(i=>({d:i,c:counts[i],p:Math.round(counts[i]/total*100)})).sort((a,b)=>b.c-a.c); let top=sorted[0]; document.getElementById("scanDetails").innerText=`Even:${evenPct}% Odd:${oddPct}% | Over4:${overPct}% Under4:${underPct}% | Over2:${over2Pct}% | Top:${top.d} ${top.p}%`; document.getElementById("hotCold").innerHTML=`🔥 HOT:${sorted.slice(0,3).map(s=>s.d).join(" ")} ❄️ COLD:${sorted.slice(-3).map(s=>s.d).join(" ")}`; let opps=[]; if(evenPct>=65) opps.push({market:"DIGITEVEN",conf:evenPct,type:`Even ${evenPct}%`,barrier:null}); if(oddPct>=65) opps.push({market:"DIGITODD",conf:oddPct,type:`Odd ${oddPct}%`,barrier:null}); if(overPct>=65) opps.push({market:"DIGITOVER",barrier:4,conf:overPct,type:`Over4 ${overPct}%`}); if(underPct>=65) opps.push({market:"DIGITUNDER",barrier:4,conf:underPct,type:`Under4 ${underPct}%`}); if(over2Pct>=76) opps.push({market:"DIGITOVER",barrier:2,conf:over2Pct,type:`Over2 ${over2Pct}%`}); if((100-over2Pct)>=76) opps.push({market:"DIGITUNDER",barrier:2,conf:100-over2Pct,type:`Under2 ${100-over2Pct}%`}); if(top.p>=28) opps.push({market:"DIGITMATCH",barrier:top.d,conf:top.p+40,type:`Match ${top.d} ${top.p}%`}); opps.sort((a,b)=>b.conf-a.conf); let best=opps[0]; if(best){document.getElementById("scanStatus").innerText=`✅ FAVOURABLE FOUND`; document.getElementById("scanStatus").style.color="#2df28b"; document.getElementById("bestMarket").innerText=`🎯 ${best.type} → ${best.market} ${best.barrier??""} (${best.conf}%)`; return best;} else{document.getElementById("scanStatus").innerText=`⏸️ HOLDING - No 65%+ edge`; document.getElementById("scanStatus").style.color="#f59e0b"; document.getElementById("bestMarket").innerText=`HOLD - Waiting edge`; return null;}}
+function connectTicks(){if(ws) ws.close(); ws=new WebSocket("wss://ws.derivws.com/websockets/v3?app_id=1089"); ws.onopen=()=>{ws.send(JSON.stringify({ticks:"R_10"})); logM(`TICK FEED CONNECTED R_10`);}; ws.onmessage=(e)=>{let data=JSON.parse(e.data); if(data.tick){let d=Number(String(data.tick.quote).slice(-1)); lastDigit=d; history.push(d); if(history.length>100) counts[history.shift()]--; counts[d]++; if(history.length>100) history.shift(); document.getElementById("lastDigit").innerText=d; document.getElementById("tickInfo").innerText=`TICK ${data.tick.quote} LAST:${d} via R_10`; document.getElementById("histCount").innerText=history.length; updateGrid(); let best=runScanner(); if(best){logM(`TICK ${data.tick.quote} LAST:${d} | ✅ FAVOURABLE FOUND`); if(trading &&!awaitingResult) doTrade(best);} else{logM(`TICK ${data.tick.quote} LAST:${d} | ⏸️ HOLDING`);} } if(data.msg_type=="authorize"){balance=data.authorize.balance; document.getElementById("balance").innerText=`Bal:$${balance.toFixed(2)}`; dotConnected=true; document.getElementById("dotStatus").innerText=`🟢 ${token.slice(0,10)} CONNECTED`; document.getElementById("tokenCheck").innerText=`✅ ${token.slice(0,10)}`; document.getElementById("dotBox").innerText=data.authorize.logininfo?data.authorize.logininfo.email:"CONNECTED"; logM(`🔐 AUTH OK Bal $${balance}`);} if(data.msg_type=="proposal_open_contract"){if(data.proposal_open_contract.is_sold){let p=Number(data.proposal_open_contract.profit); profit+=p; if(p>0) wins++; else losses++; if(p>0){nextStake=Number(document.getElementById("stake").value);} else{nextStake=nextStake*Number(document.getElementById("martingale").value);} document.getElementById("profit").innerText=`P:$${profit.toFixed(2)}`; document.getElementById("wins").innerText=`W:${wins}`; document.getElementById("loss").innerText=`L:${losses}`; document.getElementById("nextStake").innerText=`Next:$${nextStake.toFixed(2)}`; document.getElementById("tpSlInfo").innerText=`TP:$${document.getElementById("tp").value} SL:$${document.getElementById("sl").value} | ${Math.round(profit/Number(document.getElementById("tp").value)*100)}% to TP | P:$${profit.toFixed(2)}`; balance=data.proposal_open_contract.balance_after||balance; document.getElementById("balance").innerText=`Bal:$${balance.toFixed(2)}`; if(p>0) logM(`✅ WIN $${p.toFixed(2)} P:$${profit.toFixed(2)} W:${wins}`); else logM(`❌ LOSS $${p.toFixed(2)} P:$${profit.toFixed(2)} L:${losses}`); awaitingResult=false; document.getElementById("tradeStatus").innerText="HOLD"; if(profit>=Number(document.getElementById("tp").value)){logM(`🎯 TP HIT $${profit} STOPPING`); trading=false;} if(profit<=-Number(document.getElementById("sl").value)){logM(`🛑 SL HIT $${profit} STOPPING`); trading=false;}} } if(data.error){logM(`❌ ERR ${data.error.message}`); awaitingResult=false;}}; ws.onerror=()=>logM(`❌ WS ERROR`);}
+function authorize(){token=document.getElementById("token").value.trim(); if(!token){logM(`❌ NO TOKEN`); return;} if(!ws) connectTicks(); setTimeout(()=>{ws.send(JSON.stringify({authorize:token}));},500);}
+function doTrade(best){if(!dotConnected){logM(`❌ NOT CONNECTED`); return;} if(awaitingResult){return;} let stake=nextStake; let req={proposal:1, amount:stake, basis:"stake", contract_type:best.market, currency:"USD", symbol:"R_10", duration:1, duration_unit:"t"}; if(best.barrier!==null && best.barrier!==undefined) req.barrier=best.barrier; if(best.market==="DIGITOVER"||best.market==="DIGITUNDER") req.barrier=best.barrier; if(best.market==="DIGITMATCH"||best.market==="DIGITDIFF") req.barrier=best.barrier; logM(`🎯 TRADE → ${best.type} ${best.market} ${best.barrier??""} $${stake} CONF:${best.conf}%`); ws.send(JSON.stringify(req)); let propHandler=(ev)=>{let d=JSON.parse(ev.data); if(d.msg_type=="proposal"){let id=d.proposal.id; let ask=d.proposal.ask_price; logM(`PROP ${id.slice(0,6)} $${ask} → BUYING`); ws.send(JSON.stringify({buy:id, price:ask}));} if(d.msg_type=="buy"){if(d.buy){logM(`📈 BOUGHT ${d.buy.contract_id} $${d.buy.buy_price} CONFIRMED`); awaitingResult=true; document.getElementById("tradeStatus").innerText="TRADING"; ws.send(JSON.stringify({proposal_open_contract:1, contract_id:d.buy.contract_id, subscribe:1}));} if(d.error){logM(`❌ BUY ERR ${d.error.message}`); awaitingResult=false;}}}; ws.addEventListener("message",propHandler,{once:false}); setTimeout(()=>{ws.removeEventListener("message",propHandler);},5000);}
+function startTrading(){token=document.getElementById("token").value.trim(); if(!token){logM(`❌ PASTE TOKEN FIRST`); return;} if(!dotConnected) authorize(); trading=true; logM(`🧠 SMART SCAN & TRADE STARTED Stake $${document.getElementById("stake").value}`); document.getElementById("tradeStatus").innerText="SCANNING";}
+function stopTrading(){trading=false; awaitingResult=false; logM(`⏹️ STOPPED`); document.getElementById("tradeStatus").innerText="STOPPED";}
+function clearLog(){document.getElementById("log").innerHTML="";} function toggleToken(){let t=document.getElementById("token"); t.type=t.type=="password"?"text":"password";}
+document.getElementById("token").addEventListener("input",()=>{token=document.getElementById("token").value.trim(); localStorage.setItem("deriv_token",token); if(token) authorize();});
+window.onload=()=>{let saved=localStorage.getItem("deriv_token"); if(saved){document.getElementById("token").value=saved; token=saved; } connectTicks(); if(saved) setTimeout(authorize,1000);};
 </script></body></html>
-""", mimetype="text/html")
-if __name__=="__main__": app.run(host="0.0.0.0", port=int(os.environ.get("PORT",5000)))
