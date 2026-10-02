@@ -27,10 +27,10 @@ def d_otp():
 def home():
     return Response("""
 <!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TITAN V30 TP/SL</title><script src="https://cdn.tailwindcss.com"></script>
-<style>body{background:#0b0f1f;color:#fff;font-family:system-ui;margin:0}.big{font-size:90px;font-weight:900;color:#2df28b;text-align:center;line-height:1}.box{background:#1a203a;border-radius:10px;padding:10px 0;text-align:center;border:2px solid transparent}.box.hot{border-color:#2df28b;box-shadow:0 0 12px #2df28b88}.box.cold{opacity:.4}.inp{background:#171d35;border:1px solid #2a345c;border-radius:12px;padding:10px;color:#fff;width:100%;text-align:center;font-size:13px}.btn{border-radius:12px;font-weight:900;padding:12px;width:100%}.log{background:#040712;border-radius:12px;padding:8px;height:300px;overflow:auto;color:#2df28b;font-family:monospace;font-size:11px}.scan-card{background:#131a2e;border:1px solid #2df28b44;border-radius:10px;padding:8px;margin-top:6px;font-size:11px}</style>
+<title>TITAN V31 FIXED BUY</title><script src="https://cdn.tailwindcss.com"></script>
+<style>body{background:#0b0f1f;color:#fff;font-family:system-ui;margin:0}.big{font-size:90px;font-weight:900;color:#2df28b;text-align:center;line-height:1}.box{background:#1a203a;border-radius:10px;padding:10px 0;text-align:center;border:2px solid transparent}.box.hot{border-color:#2df28b;box-shadow:0 0 12px #2df28b88}.box.cold{opacity:.4}.inp{background:#171d35;border:1px solid #2a345c;border-radius:12px;padding:10px;color:#fff;width:100%;text-align:center;font-size:13px}.btn{border-radius:12px;font-weight:900;padding:12px;width:100%}.log{background:#040712;border-radius:12px;padding:8px;height:320px;overflow:auto;color:#2df28b;font-family:monospace;font-size:11px}.scan-card{background:#131a2e;border:1px solid #2df28b44;border-radius:10px;padding:8px;margin-top:6px;font-size:11px}</style>
 </head><body class="p-3 max-w-[400px] mx-auto">
-<div class="text-center font-black text-[13px] tracking-widest mt-1">TITAN V30 TP/SL + SMART SCAN</div>
+<div class="text-center font-black text-[13px] tracking-widest mt-1">TITAN V31 FIXED - TP/SL + BUY</div>
 <div id="big" class="big">8</div>
 <div id="tick" class="text-center text-[#2df28b] text-xs font-mono">TICK -- via R_10</div>
 <div id="grid" class="grid grid-cols-5 gap-2 mt-2"></div>
@@ -40,21 +40,15 @@ def home():
 <div id="status" class="text-center text-[10px] text-gray-400 mt-2">Loading saved token...</div>
 <input id="pat" type="password" class="inp mt-2" placeholder="pat_...">
 <button onclick="toggle()" class="btn mt-2 bg-[#2df28b] text-black text-xs">👁️ Show / Hide Token</button>
-<div class="grid grid-cols-2 gap-2 mt-2">
-<input id="stake" type="number" class="inp" value="1" step="0.1" placeholder="Stake $">
-<input id="marti" type="number" class="inp" value="2.1" step="0.1" placeholder="Marti x">
-</div>
-<div class="grid grid-cols-2 gap-2 mt-2">
-<input id="tp" type="number" class="inp border-green-500" value="20" step="1" placeholder="TP $20">
-<input id="sl" type="number" class="inp border-red-500" value="20" step="1" placeholder="SL $20">
-</div>
-<div class="text-[9px] text-center text-gray-400 mt-1">TP = Take Profit (stop when P >= TP) | SL = Stop Loss (stop when P <= -SL)</div>
+<div class="grid grid-cols-2 gap-2 mt-2"><input id="stake" type="number" class="inp" value="1" step="0.1"><input id="marti" type="number" class="inp" value="2.1" step="0.1"></div>
+<div class="grid grid-cols-2 gap-2 mt-2"><input id="tp" type="number" class="inp border-green-500" value="10" step="1"><input id="sl" type="number" class="inp border-red-500" value="20" step="1"></div>
+<div class="text-[9px] text-center text-gray-400 mt-1">TP = Take Profit (stop P >= TP) | SL = Stop Loss (stop P <= -SL)</div>
 <button onclick="connect()" id="btnConn" class="btn mt-2 bg-[#1a203a] border text-white text-xs">🔍 LOAD & CONNECT</button>
-<button onclick="smartRun()" id="btnSmart" class="btn mt-2 bg-gradient-to-r from-[#2df28b] to-[#00d4ff] text-black text-[13px]">🧠 ONE BUTTON SCAN & TRADE</button>
+<button onclick="smartRun()" id="btnSmart" class="btn mt-2 bg-gradient-to-r from-[#2df28b] to-[#00d4ff] text-black text-[13px]">🧠 ONE BUTTON SMART SCAN & TRADE</button>
 <div class="grid grid-cols-2 gap-2 mt-2"><button onclick="stopBot()" class="btn bg-red-500 text-white text-xs py-2">⏹️ STOP</button><button onclick="document.getElementById('log').innerHTML=''" class="btn bg-[#1a203a] text-white text-xs py-2">🧹 CLEAR</button></div>
 <div id="bal" class="text-center text-xs font-mono mt-2">Balance:- | P:$0 W:0 L:0 Next:$1 | HOLD</div>
-<div id="tpSlBar" class="text-center text-[10px] font-mono mt-1 text-yellow-300">TP:$20 SL:$20 | 0% to target</div>
-<div id="log" class="log mt-2">> V30 TP/SL READY<br>> Set TP/SL then ONE BUTTON<br></div>
+<div id="tpSlBar" class="text-center text-[10px] font-mono mt-1 text-yellow-300">TP:$10 SL:$20 | 0% to target</div>
+<div id="log" class="log mt-2">> V31 FIXED underlying_symbol<br>> Scanner finds 60%+ edge then BUYS<br></div>
 <script>
 let counts=Array(10).fill(0), history=[], ws=null, auto=false, curStake=1, profit=0, wins=0, losses=0, isTrading=false;
 function log(m,c="#2df28b"){let l=document.getElementById("log"); l.innerHTML=`<div style="color:${c}">> ${m}</div>`+l.innerHTML;}
@@ -67,13 +61,7 @@ function render(){
  let g=document.getElementById("grid"); g.innerHTML=""; for(let i=0;i<10;i++){let pct=history.length?Math.round(counts[i]/history.length*100):0; let isHot=sorted[0]?.d==i, isCold=sorted.slice(-3).some(c=>c.d==i); let cls=isHot?"box hot":isCold?"box cold":"box"; g.innerHTML+=`<div class="${cls}"><div class="text-lg font-black">${i}</div><div class="text-[10px] opacity-60">${pct}%</div></div>`;}
  if(history.length>=5) runScanner(); updateTpSlBar();
 }
-function updateTpSlBar(){
- let tp=parseFloat(document.getElementById("tp").value)||20; let sl=parseFloat(document.getElementById("sl").value)||20;
- let pctTp=tp>0?Math.min(100, Math.max(0, (profit/tp)*100)):0; let txt=""; if(profit>=0) txt=`TP:$${tp} SL:$${sl} | ${pctTp.toFixed(0)}% to TP | P:$${profit.toFixed(2)}`;
- else txt=`TP:$${tp} SL:$${sl} | P:$${profit.toFixed(2)} (${Math.abs(profit/sl*100).toFixed(0)}% to SL)`;
- document.getElementById("tpSlBar").innerText=txt;
- if(profit>=tp) document.getElementById("tpSlBar").style.color="#2df28b"; else if(profit<=-sl) document.getElementById("tpSlBar").style.color="#ef4444"; else document.getElementById("tpSlBar").style.color="#facc15";
-}
+function updateTpSlBar(){let tp=parseFloat(document.getElementById("tp").value)||20; let sl=parseFloat(document.getElementById("sl").value)||20; let txt=""; if(profit>=0) txt=`TP:$${tp} SL:$${sl} | ${Math.min(100,(profit/tp*100)).toFixed(0)}% to TP | P:$${profit.toFixed(2)}`; else txt=`TP:$${tp} SL:$${sl} | P:$${profit.toFixed(2)} | ${Math.abs(profit/sl*100).toFixed(0)}% to SL`; document.getElementById("tpSlBar").innerText=txt;}
 function runScanner(){
  if(history.length<20){document.getElementById("scanStatus").innerText=`COLLECTING ${history.length}/20`; return null;}
  let total=history.length; let even=history.filter(d=>d%2==0).length, odd=total-even; let evenPct=Math.round(even/total*100), oddPct=100-evenPct;
@@ -84,12 +72,12 @@ function runScanner(){
  if(overPct>=65) opps.push({market:"DIGITOVER", barrier:4, conf:overPct, reason:`Over4 ${overPct}%`, type:"Over/Under"});
  if(underPct>=65) opps.push({market:"DIGITUNDER", barrier:4, conf:underPct, reason:`Under4 ${underPct}%`, type:"Over/Under"});
  if(over2Pct>=75) opps.push({market:"DIGITOVER", barrier:2, conf:over2Pct, reason:`Over2 ${over2Pct}% STRONG`, type:"Over/Under"});
- if(top.p>=28) opps.push({market:"DIGITMATCH", barrier:top.d, conf:top.p+25, reason:`Match ${top.d} ${top.p}%`, type:"Match/Diff"});
- if(top.p<=8) opps.push({market:"DIGITDIFF", barrier:top.d, conf:68, reason:`Diff ${top.d} rare`, type:"Match/Diff"});
+ if(top.p>=28) opps.push({market:"DIGITMATCH", barrier:top.d, conf:top.p+25, reason:`Match ${top.d}`, type:"Match/Diff"});
+ if(top.p<=8) opps.push({market:"DIGITDIFF", barrier:top.d, conf:68, reason:`Diff ${top.d}`, type:"Match/Diff"});
  opps.sort((a,b)=>b.conf-a.conf); let best=opps[0];
  document.getElementById("scanDetails").innerText=`Even:${evenPct}% Odd:${oddPct}% | Over4:${overPct}% Under4:${underPct}% Over2:${over2Pct}% | Top:${top.d} ${top.p}%`;
- if(best && best.conf>=60){document.getElementById("scanStatus").innerText="✅ FAVOURABLE FOUND"; document.getElementById("scanStatus").style.color="#2df28b"; document.getElementById("bestMarket").innerHTML=`🎯 <span class="text-[#2df28b]">${best.type}</span> → ${best.market} ${best.barrier??''} (${best.conf}%)`; return best;}
- else{document.getElementById("scanStatus").innerText="⏸️ HOLDING - No edge"; document.getElementById("scanStatus").style.color="#f59e0b"; document.getElementById("bestMarket").innerText="HOLD - Waiting 60%+ edge"; return null;}
+ if(best && best.conf>=60){document.getElementById("scanStatus").innerText="✅ FAVOURABLE FOUND"; document.getElementById("scanStatus").style.color="#2df28b"; document.getElementById("bestMarket").innerHTML=`🎯 ${best.type} → ${best.market} ${best.barrier??''} (${best.conf}%)`; return best;}
+ else{document.getElementById("scanStatus").innerText="⏸️ HOLDING"; document.getElementById("scanStatus").style.color="#f59e0b"; document.getElementById("bestMarket").innerText="HOLD - No edge"; return null;}
 }
 async function connect(){
  let pat=document.getElementById("pat").value.trim(); if(!pat.startsWith("pat_")){alert("pat_ required");return;}
@@ -106,31 +94,31 @@ async function connect(){
   if(d.tick){let last=parseInt(String(d.tick.quote).slice(-1)); document.getElementById("big").innerText=last; document.getElementById("tick").innerText=`TICK ${d.tick.quote} LAST:${last} via R_10`; history.unshift(last); if(history.length>100) history.pop(); counts[last]++; render(); log(`TICK ${d.tick.quote} LAST:${last} | ${document.getElementById("scanStatus").innerText}`);}
   if(d.balance){document.getElementById("bal").innerText=`Bal:$${d.balance.balance} | P:$${profit.toFixed(2)} W:${wins} L:${losses} Next:$${curStake} | ${isTrading?"TRADING":auto?"AUTO":"HOLD"}`; updateTpSlBar();}
   if(d.proposal && auto){log(`PROP ${d.proposal.id.slice(0,8)} $${d.proposal.ask_price} → BUYING`,"#facc15"); ws.send(JSON.stringify({buy:d.proposal.id, price:parseFloat(curStake)}));}
-  if(d.buy){log(`📈 BOUGHT ${d.buy.contract_id} $${curStake}`,"#00d4ff");}
+  if(d.buy){log(`📈 BOUGHT ${d.buy.contract_id} $${curStake} CONFIRMED`,"#00d4ff");}
   if(d.proposal_open_contract){
    if(!d.proposal_open_contract.is_sold){return;}
    let pl=parseFloat(d.proposal_open_contract.profit); profit+=pl; updateTpSlBar();
    if(pl>0){wins++; curStake=parseFloat(document.getElementById("stake").value); log(`✅ WIN $${pl.toFixed(2)} P:$${profit.toFixed(2)} W:${wins}`,"#2df28b");}
    else{losses++; curStake=(curStake*parseFloat(document.getElementById("marti").value)).toFixed(2); log(`❌ LOSS $${pl.toFixed(2)} Next:$${curStake} L:${losses}`,"#ef4444");}
    isTrading=false;
-   // CHECK TP/SL
    let tp=parseFloat(document.getElementById("tp").value)||20; let sl=parseFloat(document.getElementById("sl").value)||20;
-   if(profit>=tp){log(`🎉 TAKE PROFIT HIT! P:$${profit.toFixed(2)} >= TP:$${tp} - STOPPING`,"#2df28b"); stopBot(); alert(`🎉 TAKE PROFIT! Profit $${profit.toFixed(2)} >= $${tp}`); return;}
-   if(profit<=-sl){log(`🛑 STOP LOSS HIT! P:$${profit.toFixed(2)} <= -$${sl} - STOPPING`,"#ef4444"); stopBot(); alert(`🛑 STOP LOSS! Loss $${profit.toFixed(2)} <= -$${sl}`); return;}
+   if(profit>=tp){log(`🎉 TP HIT $${profit.toFixed(2)} >= $${tp} STOP`,"#2df28b"); stopBot(); alert(`🎉 TP HIT! $${profit.toFixed(2)}`); return;}
+   if(profit<=-sl){log(`🛑 SL HIT $${profit.toFixed(2)} <= -$${sl} STOP`,"#ef4444"); stopBot(); alert(`🛑 SL HIT! $${profit.toFixed(2)}`); return;}
    if(auto) setTimeout(()=>smartTrade(),3000);
   }
   if(d.error){log(`❌ ${d.error.code} ${d.error.message}`,"#ef4444"); isTrading=false; if(auto) setTimeout(()=>smartTrade(),3000);}
  };
 }
 function smartTrade(){
- if(isTrading) return; let best=runScanner(); if(!best){log("⏸️ HOLD - No edge, 3s...","#f59e0b"); if(auto) setTimeout(()=>smartTrade(),3000); return;}
- let base={proposal:1, amount:parseFloat(curStake), basis:"stake", contract_type:best.market, currency:"USD", duration:1, duration_unit:"t", symbol:"R_10"};
+ if(isTrading) return; let best=runScanner(); if(!best){log("⏸️ HOLD - waiting 3s...","#f59e0b"); if(auto) setTimeout(()=>smartTrade(),3000); return;}
+ // FIXED: underlying_symbol not symbol
+ let base={proposal:1, amount:parseFloat(curStake), basis:"stake", contract_type:best.market, currency:"USD", duration:1, duration_unit:"t", underlying_symbol:"R_10"};
  if(best.barrier!==null) base.barrier=best.barrier; isTrading=true;
  log(`🎯 TRADE → ${best.type}: ${best.market} ${best.barrier??''} $${curStake} CONF:${best.conf}%`,"#00d4ff");
  ws.send(JSON.stringify(base));
 }
-function smartRun(){if(!ws){alert("Connect first");return;} auto=true; curStake=parseFloat(document.getElementById("stake").value); isTrading=false; localStorage.setItem("titan_tp",document.getElementById("tp").value); localStorage.setItem("titan_sl",document.getElementById("sl").value); document.getElementById("btnSmart").innerText="🧠 TRADING (TP/SL Active)"; log(`🧠 START TP:$${document.getElementById("tp").value} SL:$${document.getElementById("sl").value} - HOLD if no edge`,"#00d4ff"); smartTrade();}
-function stopBot(){auto=false; isTrading=false; document.getElementById("btnSmart").innerText="🧠 ONE BUTTON SCAN & TRADE"; log("⏹️ STOPPED","#ef4444");}
+function smartRun(){if(!ws){alert("Connect first");return;} auto=true; curStake=parseFloat(document.getElementById("stake").value); isTrading=false; localStorage.setItem("titan_tp",document.getElementById("tp").value); localStorage.setItem("titan_sl",document.getElementById("sl").value); document.getElementById("btnSmart").innerText="🧠 TRADING (TP/SL Active)"; log(`🧠 START TP:$${document.getElementById("tp").value} SL:$${document.getElementById("sl").value}`,"#00d4ff"); smartTrade();}
+function stopBot(){auto=false; isTrading=false; document.getElementById("btnSmart").innerText="🧠 ONE BUTTON SMART SCAN & TRADE"; log("⏹️ STOPPED","#ef4444");}
 window.onload=loadSaved;
 </script></body></html>
 """, mimetype="text/html")
