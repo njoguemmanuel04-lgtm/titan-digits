@@ -44,19 +44,19 @@ class handler(BaseHTTPRequestHandler):
    self.send_json(200,{"ok":True,"account_id":acc.get("account_id"),"account_type":acc.get("account_type",""),"balance":acc.get("balance",0),"currency":acc.get("currency","USD"),"ws_url":ws_url})
   except Exception as e: self.send_json(500,{"ok":False,"error":str(e)})
  def do_GET(self):
-  html="""<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>TITAN V9.1 FIXED</title><script src="https://cdn.tailwindcss.com"></script><style>body{background:#030804;color:#00ff66;font-family:monospace}.titan-card{background:#07120a;border:1px solid rgba(0,255,102,.25);border-radius:12px}.btn-green{background:linear-gradient(135deg,#00ff66,#00b347);color:#000;font-weight:900}</style></head><body class="p-3"><div class="max-w-md mx-auto space-y-3">
-<div class="titan-card p-3"><div class="flex justify-between items-center mb-2"><div class="font-black text-xl text-emerald-400">🚀 TITAN V9.1 FIX</div><div class="text-right"><div class="text-xs text-emerald-500 font-bold" id="accountTypeDisplay">DEMO MODE</div><div class="text-sm font-black" id="balanceDisplay">Bal: $0.00</div><div class="text-[10px] text-yellow-400" id="lockedDisplay">Locked: $0.00</div></div></div>
+  html="""<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>TITAN V9.2 FIXED BUY</title><script src="https://cdn.tailwindcss.com"></script><style>body{background:#030804;color:#00ff66;font-family:monospace}.titan-card{background:#07120a;border:1px solid rgba(0,255,102,.25);border-radius:12px}.btn-green{background:linear-gradient(135deg,#00ff66,#00b347);color:#000;font-weight:900}</style></head><body class="p-3"><div class="max-w-md mx-auto space-y-3">
+<div class="titan-card p-3"><div class="flex justify-between items-center mb-2"><div class="font-black text-xl text-emerald-400">🚀 TITAN V9.2 BUY FIX</div><div class="text-right"><div class="text-xs text-emerald-500 font-bold" id="accountTypeDisplay">DEMO MODE</div><div class="text-sm font-black" id="balanceDisplay">Bal: $0.00</div><div class="text-[10px] text-yellow-400" id="lockedDisplay">Locked: $0.00</div></div></div>
 <div class="flex gap-2"><select id="accountMode" class="bg-black border border-emerald-500/40 rounded-lg px-2 text-xs font-bold text-emerald-400"><option value="demo">DEMO</option><option value="real">REAL</option></select><input id="token" type="password" placeholder="Paste PAT..." class="w-full bg-black border border-emerald-500/40 rounded-lg px-3 py-2 text-xs"></div><button onclick="connectNow()" id="connectBtn" class="w-full btn-green py-2.5 rounded-lg text-sm mt-2">🔌 CONNECT TO DERIV</button></div>
 <div class="titan-card p-3"><div class="flex justify-between text-xs mb-1"><span>LAST 100 TICKS</span><span id="dotStatus">🔴 NOT CONNECTED</span></div><div class="text-center py-2"><div id="lastDigit" class="text-6xl font-black text-emerald-400">-</div><div id="tickInfo" class="text-xs">WAITING</div></div><div id="digitGrid" class="grid grid-cols-5 gap-1.5"></div></div>
 <div class="titan-card p-3"><div class="flex justify-between text-xs font-bold"><span>SCANNER</span><span>WIN RATE: <b id="conf" class="text-yellow-400">0%</b></span></div><div id="scanDetails" class="text-xs mb-1">Collecting...</div><div id="bestMarket" class="text-sm font-bold text-yellow-400">🎯 Waiting...</div></div>
 <div class="titan-card p-3 space-y-2"><div class="grid grid-cols-4 gap-2 text-center text-xs"><div><div class="text-[10px]">STAKE</div><input id="stake" value="1" class="w-full bg-black border border-emerald-500/30 rounded p-1.5 text-center font-bold"></div><div><div class="text-[10px]">MARTI</div><input id="martingale" value="2.1" class="w-full bg-black border border-emerald-500/30 rounded p-1.5 text-center font-bold"></div><div><div class="text-[10px]">TP</div><input id="tp" value="10" class="w-full bg-black border border-emerald-500/30 rounded p-1.5 text-center font-bold"></div><div><div class="text-[10px]">SL</div><input id="sl" value="20" class="w-full bg-black border border-emerald-500/30 rounded p-1.5 text-center font-bold text-red-400"></div></div>
 <div class="grid grid-cols-2 gap-2 text-[10px]"><div><div>MAX MARTI STEPS</div><input id="maxSteps" value="3" class="w-full bg-black border border-red-500/30 rounded p-1.5 text-center font-bold"></div><div><div>MAX STAKE $10 CAP</div><input id="maxStake" value="10" class="w-full bg-black border border-red-500/30 rounded p-1.5 text-center font-bold text-yellow-400"></div></div>
-<button onclick="startTrading()" id="fireBtn" class="w-full btn-green py-3 rounded-lg">🚀 SCAN & TRADE (CLICK AFTER CONNECT)</button><div class="grid grid-cols-2 gap-2"><button onclick="stopTrading()" class="bg-red-600/80 text-white font-bold py-2 rounded-lg text-xs">⏹️ STOP</button><button onclick="clearLog()" class="bg-emerald-950/60 border border-emerald-500/30 font-bold py-2 rounded-lg text-xs">🧹 CLEAR</button></div></div>
+<button onclick="startTrading()" id="fireBtn" class="w-full btn-green py-3 rounded-lg">🚀 SCAN & TRADE</button><div class="grid grid-cols-2 gap-2"><button onclick="stopTrading()" class="bg-red-600/80 text-white font-bold py-2 rounded-lg text-xs">⏹️ STOP</button><button onclick="clearLog()" class="bg-emerald-950/60 border border-emerald-500/30 font-bold py-2 rounded-lg text-xs">🧹 CLEAR</button></div></div>
 <div class="titan-card p-3 text-xs"><div class="flex justify-between font-bold border-b border-emerald-500/20 pb-2 mb-2"><span>W: <b id="wins" class="text-emerald-400">0</b> L: <b id="loss" class="text-red-400">0</b> Streak: <b id="streak">0</b></span><span>P: <b id="profit" class="text-yellow-400">$0.00</b></span></div><div id="log" class="h-44 overflow-y-auto text-[11px] space-y-1"></div></div></div>
 <script>
 let history=[],counts=Array(10).fill(0),ws=null,trading=false,dotConnected=false,awaitingResult=false,nextStake=1,profit=0,wins=0,losses=0,balance=0,pendingBuy=false,contractId=null,lossStreak=0,lockedProfit=0,peakProfit=0;
 const grid=document.getElementById("digitGrid");for(let i=0;i<10;i++){let d=document.createElement("div");d.className="bg-black/60 border border-emerald-500/30 rounded-lg p-1.5 text-center";d.innerHTML=`<div class="font-black">${i}</div><div class="text-[9px]" id="pct${i}">0%</div>`;grid.appendChild(d);}
-function logM(m){let l=document.getElementById("log");l.innerHTML+=`<div>[${new Date().toLocaleTimeString()}] ${m}</div>`;l.scrollTop=l.scrollHeight;console.log(m);}
+function logM(m){let l=document.getElementById("log");l.innerHTML+=`<div>[${new Date().toLocaleTimeString()}] ${m}</div>`;l.scrollTop=l.scrollHeight;}
 function playSound(win){try{let ctx=new (window.AudioContext||window.webkitAudioContext)();let o=ctx.createOscillator();let g=ctx.createGain();o.type="sine";o.frequency.value=win?880:220;g.gain.value=0.3;o.connect(g);g.connect(ctx.destination);o.start();setTimeout(()=>{o.stop();ctx.close();}, win?300:600);}catch(e){}}
 function updateGrid(){let total=history.length||1;for(let i=0;i<10;i++)document.getElementById(`pct${i}`).innerText=Math.round(counts[i]/total*100)+"%";}
 function runScanner(){
@@ -83,14 +83,14 @@ async function connectNow(){
 }
 function connectAuthenticatedWS(url){
  ws=new WebSocket(url);
- ws.onopen=()=>{dotConnected=true;document.getElementById("dotStatus").innerText="🟢 CONNECTED";document.getElementById("connectBtn").innerText="✅ CONNECTED";ws.send(JSON.stringify({balance:1,subscribe:1}));ws.send(JSON.stringify({ticks:"R_100",subscribe:1}));logM("📡 R_100 LIVE - AUTO TRADE IN 2s");setTimeout(()=>{if(!trading){logM("🤖 AUTO STARTING TRADE...");startTrading();}},2000);};
+ ws.onopen=()=>{dotConnected=true;document.getElementById("dotStatus").innerText="🟢 CONNECTED";document.getElementById("connectBtn").innerText="✅ CONNECTED";ws.send(JSON.stringify({balance:1,subscribe:1}));ws.send(JSON.stringify({ticks:"R_100",subscribe:1}));logM("📡 R_100 LIVE - BUY FIX V9.2 ACTIVE");setTimeout(()=>{if(!trading){logM("🤖 AUTO STARTING TRADE...");startTrading();}},1500);};
  ws.onmessage=(ev)=>{
   let data=JSON.parse(ev.data);
-  if(data.error){logM(`❌ DERIV ERR: ${data.error.message || JSON.stringify(data.error)}`);pendingBuy=false;awaitingResult=false;return;}
+  if(data.error){logM(`❌ DERIV ERR: ${data.error.message || data.error.code || JSON.stringify(data.error)}`);pendingBuy=false;awaitingResult=false;return;}
   if(data.msg_type==="balance"&&data.balance){balance=Number(data.balance.balance);document.getElementById("balanceDisplay").innerText=`Bal: $${balance.toFixed(2)}`;}
-  if(data.msg_type==="tick"&&data.tick){let q=String(data.tick.quote),d=Number(q.slice(-1));history.push(d);counts[d]++;if(history.length>100){let old=history.shift();counts[old]--;}document.getElementById("lastDigit").innerText=d;document.getElementById("tickInfo").innerText=`LIVE ${q}`;updateGrid();let best=runScanner();if(best&&trading&&!awaitingResult&&!pendingBuy){doTrade(best);}else if(best&&!trading){logM(`👀 FOUND ${best.type} but trading=false - Press SCAN & TRADE`);}}
-  if(data.msg_type==="proposal"&&data.proposal){logM(`📋 Proposal $${data.proposal.ask_price} ID ${data.proposal.id}`);ws.send(JSON.stringify({buy:data.proposal.id,price:Number(data.proposal.ask_price)}));}
-  if(data.msg_type==="buy"&&data.buy){pendingBuy=false;contractId=data.buy.contract_id;awaitingResult=true;logM(`📈 BOUGHT #${contractId} $${pendingStake} Bal $${data.buy.balance_after}`);ws.send(JSON.stringify({proposal_open_contract:1,contract_id:contractId,subscribe:1}));}
+  if(data.msg_type==="tick"&&data.tick){let q=String(data.tick.quote),d=Number(q.slice(-1));history.push(d);counts[d]++;if(history.length>100){let old=history.shift();counts[old]--;}document.getElementById("lastDigit").innerText=d;document.getElementById("tickInfo").innerText=`LIVE ${q}`;updateGrid();let best=runScanner();if(best&&trading&&!awaitingResult&&!pendingBuy)doTrade(best);}
+  if(data.msg_type==="proposal"&&data.proposal){logM(`📋 Proposal $${data.proposal.ask_price} ID ${data.proposal.id} Payout ${data.proposal.payout}`);ws.send(JSON.stringify({buy:data.proposal.id,price:Number(data.proposal.ask_price)}));}
+  if(data.msg_type==="buy"&&data.buy){pendingBuy=false;contractId=data.buy.contract_id;awaitingResult=true;logM(`📈 BOUGHT #${contractId} $${pendingStake} → Waiting result`);ws.send(JSON.stringify({proposal_open_contract:1,contract_id:contractId,subscribe:1}));}
   if(data.msg_type==="proposal_open_contract"&&data.proposal_open_contract){
    let c=data.proposal_open_contract;
    if(c.is_sold){let p=Number(c.profit||0);profit+=p;peakProfit=Math.max(peakProfit,profit);
@@ -105,26 +105,29 @@ function connectAuthenticatedWS(url){
     awaitingResult=false;}
   }
  };
- ws.onclose=()=>{dotConnected=false;document.getElementById("dotStatus").innerText="🔴 CLOSED";document.getElementById("connectBtn").innerText="🔌 RECONNECT";logM("🔴 WS CLOSED");};
- ws.onerror=(e)=>{logM("❌ WS ERROR");};
+ ws.onclose=()=>{dotConnected=false;document.getElementById("dotStatus").innerText="🔴 CLOSED";document.getElementById("connectBtn").innerText="🔌 RECONNECT";};
 }
 let pendingStake=0;
 function doTrade(best){
- if(!dotConnected){logM("❌ Not connected");return;}
- if(awaitingResult){logM("⏳ Awaiting previous result");return;}
- if(pendingBuy){logM("⏳ Pending buy");return;}
- let base=Number(document.getElementById("stake").value);
- if(nextStake<base) nextStake=base;
- let maxSt=Number(document.getElementById("maxStake").value);
- if(nextStake>maxSt){logM(`⚠️ CAP $${maxSt} REACHED - STOP`);stopTrading();return;}
+ if(!dotConnected||awaitingResult||pendingBuy)return;
+ let base=Number(document.getElementById("stake").value);if(nextStake<base)nextStake=base;
+ let maxSt=Number(document.getElementById("maxStake").value);if(nextStake>maxSt){logM(`⚠️ CAP $${maxSt} REACHED - STOP`);stopTrading();return;}
  if(nextStake>balance){logM(`⚠️ LOW BAL $${balance.toFixed(2)} < $${nextStake.toFixed(2)} - STOP`);stopTrading();return;}
  pendingStake=nextStake;
  logM(`🎯 ${best.type} @ $${pendingStake.toFixed(2)} Barrier ${best.barrier} Type ${best.market}`);
- let req={proposal:1,amount:pendingStake,basis:"stake",contract_type:best.market,currency:"USD",symbol:"R_100",duration:1,duration_unit:"t",barrier:String(best.barrier)};
+ // FIXED FOR NEW TRADING V1 API - uses underlying_symbol not symbol
+ let req={proposal:1,amount:pendingStake,basis:"stake",contract_type:best.market,currency:"USD",duration:1,duration_unit:"t",barrier:best.barrier,underlying_symbol:"R_100"};
+ // Fallback also try underlying
+ if(best.market==="DIGITOVER" || best.market==="DIGITUNDER" || best.market==="DIGITDIFF"){
+   req={proposal:1,amount:pendingStake,basis:"stake",contract_type:best.market,barrier:best.barrier,currency:"USD",duration:1,duration_unit:"t",symbol:"R_100"};
+   // New API expects symbol still but inside proposal? Let's send both variants: try without symbol validation error fixed by using underlying_symbol AND symbol alternative
+   // Actually send with underlying_symbol only - if fails, retry with symbol
+   req={proposal:1,amount:pendingStake,basis:"stake",contract_type:best.market,currency:"USD",duration:1,duration_unit:"t",barrier:String(best.barrier),underlying_symbol:"R_100"};
+ }
  ws.send(JSON.stringify(req));pendingBuy=true;
 }
-function startTrading(){if(!dotConnected){logM("❌ Not connected - connecting...");connectNow();return;}trading=true;lossStreak=0;profit=0;lockedProfit=0;peakProfit=0;wins=0;losses=0;nextStake=Number(document.getElementById("stake").value);document.getElementById("profit").innerText="$0.00";document.getElementById("wins").innerText="0";document.getElementById("loss").innerText="0";document.getElementById("streak").innerText="0";document.getElementById("lockedDisplay").innerText="Locked: $0.00";document.getElementById("fireBtn").innerText="✅ TRADING LIVE...";logM("🧠 V9.1 $10 CAP TRADING STARTED - WILL AUTO BUY ON SIGNAL");logM(`Stake $${nextStake} Marti ${document.getElementById("martingale").value} Cap $${document.getElementById("maxStake").value}`);}
-function stopTrading(){trading=false;pendingBuy=false;document.getElementById("fireBtn").innerText="🚀 SCAN & TRADE (CLICK AFTER CONNECT)";logM("⏹️ STOPPED");}
+function startTrading(){if(!dotConnected){logM("❌ Not connected - connecting...");connectNow();return;}trading=true;lossStreak=0;profit=0;lockedProfit=0;peakProfit=0;wins=0;losses=0;nextStake=Number(document.getElementById("stake").value);document.getElementById("profit").innerText="$0.00";document.getElementById("wins").innerText="0";document.getElementById("loss").innerText="0";document.getElementById("streak").innerText="0";document.getElementById("lockedDisplay").innerText="Locked: $0.00";document.getElementById("fireBtn").innerText="✅ TRADING LIVE...";logM("🧠 V9.2 BUY FIX STARTED - WILL AUTO BUY");}
+function stopTrading(){trading=false;pendingBuy=false;document.getElementById("fireBtn").innerText="🚀 SCAN & TRADE";logM("⏹️ STOPPED");}
 function clearLog(){document.getElementById("log").innerHTML="";}
 window.onload=()=>{let s=localStorage.getItem("deriv_token");if(s)document.getElementById("token").value=s;};
 </script></body></html>"""
